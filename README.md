@@ -35,7 +35,7 @@ SQLite native support (amagalmation source files),
 MariaDB support (mariadb connector)
 ODBC support via the native library of the compiler
 
-If are you thinking this is half the code of Hydra+ , well maybe xD.
+If you are thinking this is half the code of Hydra+ , well maybe xD.
 
 -- Where Hydra+ can be used
 
