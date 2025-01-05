@@ -61,40 +61,42 @@ I will mention the uses that I have (and thus created) for Hydra+ :
 
 -- Hydra+ disadvantages
 
-- To support new functions an operations the source code must change and the Hydra+ must recompiled.
+- To support new functions and operations the source code must change and the Hydra+ must recompiled.
   I do not support new functions via libraries. I may do it in the future but it will defeat the purpose of the
   single and small executable. I'm in the fence about it.
 - Limited support. I'm the only one that write code for this language. I add functions add new features and fix bugs
   when I need them for my work. So if a new feature is needed but i do not is very likely that I never will implement it.
 - Hidden bugs or memory leaks. I repeat that I'm the only one writing code for Hydra+ and I have hand written all the structures , lists ,
-  logic , loader, interpreter, parser etc. This means that is very possible that catastrofic bugs are lurking. I have test Hydra+ for at least 3
-  months in production, In small applications , and i have fix alot of memory leaks and bugs (mostly for the asynchronous operations). But
+  logic , loader, interpreter, parser etc. This means that is very possible that catastrophic bugs are lurking. I have test Hydra+ for at least 3
+  months in production, in small applications and i have fix a lot of memory leaks and bugs (mostly for the asynchronous operations). But
   I'm not confident that the worst has passed!
 - Execute speed (maybe?). I did not have made extensive benchmarks (yet , no time!) , but the interpretation (the code is stored in a kind of abstract tree)
   is a lot slower than PHP's (when tested with 10.000.000 calculation with no input/output). Of course in real operation , when you write/read in disk or send data via sockets
-  the performance (in some limited test i have done) is similar with PHP, because the actual time consuming operations are these and not
+  the performance (in some limited test I have done) is similar with PHP, because the actual time consuming operations are these and not
   the code interpretation. If anyone do any benchmark please inform me! 
-- Hydra+ is very verbose as it has limited keywords and none of the shortcut syntaxs, like for example the foreach of PHP. 
+- Hydra+ is very verbose, as it has limited keywords and none of the shortcut syntaxs, like for example the "foreach" of PHP. 
 - Hydra+ imposes some restrictions in scipts like that the include directive can be present only in the top of the main script and nowere else.
-  Some of these restrictions maybe seems weird and very easy to implement. They trully are. BUT some things tha I have do is for forcing me to write cleaner code! 
+  Some of these restrictions (that you will find in the documentation) maybe seems weird and very easy to implement. They trully are. BUT some things tha I have do is for forcing me to write cleaner code! 
 - A lot of other things to consider!
 
 -- Writing Hydra+ scripts
 
 Please read all the documentation that you will find in this repository. It does not only have the syntax for the language but explain the intricacies
 of the internal operation and when (VERY IMPORTANT) you have to free manually the memory of your objects.
-The documentation has all the info that are needed, for someone to write scripts, but i will provide gradually examples of scripts when i have time. 
+The documentation has all the info that are needed for someone to write scripts, but I will provide gradually examples of scripts when I have time, as I
+understand that examples are always better than documentation. 
 
 -- Compilation
 
-To compile Hydra+ for Linux (later i will upload the windows version for Visual Studio) you have to know
-the at least the basics of Linux.
-The Linux zip includes a precompiled library of the wolfssl and for reproc so that the compilation will be faster.
+To compile Hydra+ for Linux (later I will upload the windows version for Visual Studio) you have to know
+at least the basics of Linux.
+The Linux.zip includes a precompiled library of the "wolfssl" and for "reproc" so that the compilation will be faster.
 NOTE : The precompiled libraries are compiled for Ubuntu Linux for x32-64bit platforms. If you want to change 
 target platform you have to recompile the libraries and replace them. The libraries are  in :
+
 /includes/thirdparty/wolfssl
 and
-/includes/thirdparty/reproc (i do not remember why i precompiled this as it is a very small library xD)
+/includes/thirdparty/reproc (i do not remember why I precompiled this as it is a very small library xD)
 
 First download the Linux.zip and extracted it in a directory , I will assume that the directory will be named comp_hydra.
 
@@ -106,13 +108,13 @@ In the comp_hydra directory you will find a script with the name "compile_hydra.
 Run the script. 
 - The script will prompt you to download the build-essential (gcc and libraries) if you do not have them in your system
 press y.
-- The script will propmpt you to download the ODBC driver and libraries. If you do not have them in your system and want to use odbc connections
+- The script will prompt you to download the ODBC driver and libraries. If you do not have them in your system and want to use odbc connections
   press y.
 - The script will prompt you to download MariaDB client libraries, if you do not have them in your system and want to use the MariaDB
   press y.
 - The script will prompt you to start the compilation. Press y.
 
-Wait for the compilation, if everything is correct the script will emmit a "Operation completed" message.
+Wait for the compilation, if everything is correct the script will emmit an "Operation completed" message.
 
 Now you can find the binary file of Hydra+ in the comp_hydra/hydra+/bin/
 the name of the binary will be hydra+
