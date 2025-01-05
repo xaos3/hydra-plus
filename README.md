@@ -23,7 +23,7 @@ I use the most in my everyday work life (so life in general !).
 
 -- How Hydra+ was created
 
-Hydra+ code is pure C. I dislike "smart" code, so my code is the simplest (most of the time) C code that can you find. No fancy syntax, no exotic things.
+Hydra+ code is pure C. I dislike "smart" code, so my code is the simplest (most of the time) C code that you can find. No fancy syntax, no exotic things.
 The source code is create by me in its entirety, except the third party libraries for :
 SSL support (Wolf SSL) 
 Threads support (cthreads)
