@@ -1,0 +1,1978 @@
+
+--- Preface ---
+
+Hydra+ is a very simple language and its purpose is to execute scripts in Windows 
+and Linux platforms for the purpose of implementing API , Services and backend support.
+
+Hydra+ is fully capable of running complex web applications as the backend system.
+For example, with Hydra+ is very easy to query a database, process the data and then send them via a socket to a client,
+or to setup an SSL TCP/IP Server to accept connections and serve an application.
+With Hydra+ is easy to setup an end point for an api or serve a web application. 
+This file is the documentation for Hydra+, in this file you can find all the supported databases, 
+datatypes, functions and syntax of the language.
+
+
+--- Technical Notes ---
+
+The Hydra+ is interpretered by its own simple interpreter created in the most simple C syntax.
+The interpreter is not optimized for super fast execution, and it is a type of an Abstract Syntax Tree. 
+The interpreter is not optimized, because the time constrains for its creation were very strict , 
+and I followed the path of the least resistant in coding. 
+For example, the variables and the functions in the script, are stored with their actual names
+and alot of CPU time is consumed in string comparisons and parsing trees.
+
+Ofcourse there is another reason why I did not optimized the interpeter and maybe i will not optimized it 
+in the future, Hydra+ is designed to consumes most of its CPU time in network actions and database queries, 
+so the actual interpretation time of the instructions is not critical.
+
+For example, a Hydra+ script that makes a complex algebric calculation for 10.000.000 times in a specific machine,
+consumes ~2 seconds. The same script in PHP consumes 100ms. The difference is huge. 
+But if you use an echo function to output every result,the two scripts consume almost the same time,
+because the echo function has a huge overhead in comparison with the instruction evaluation. The same
+apply with other complex actions , like accepting connections, reading/writing from/to disk,
+large string concatenation etc.  
+
+The Hydra+ has two important parts, the loader and the interpreter. The loader loads the script and its includes,
+deobfuscate the obfuscated code (if exists) and check the script for the syntax errors that are detectable in this phase. 
+If no errors have been encountered, the loader creates the instructions and expressions tree and exits.
+
+After the succesfull execution of the loader, Hydra+ runs the interpreter and executes the script's instructions. 
+
+The loader and the interpreter are being writed from scratch and does not have any external dependencies.
+They can be compiled in any C compiler, but for the Hydra+ to support databases , SSL , Threads , Processes 
+and some other (minor) operations i use some third party libraries that may need special compilation. 
+
+Memory management : Hydra+ does not have a memory manager. The rules about the memory are the following :
+
+- All the parameters of a function are references of the actual variables that will be passed as said parameters.
+So beware of altering the values and states.
+There is an exception in this rule. If a function is executed as [async], then the parameters of the function 
+are not an absolute reference to the variable BUT a reference to the [object] of the variable.
+This means that an [async] function can alter the values of the parameters and the values will be changed 
+globally to the script EXCEPT the [Numeric],[CodePoint] and [Boolean] types.   
+
+- If a constructor is used (a [Domain] function or generally a function that creates a new object), 
+the new object will be assigned to the target variable. If the said variable is assigned to another variable, 
+the internal object will be referenced in the second variable. So if you dispose the actual object,
+then both variables will MUST not being accessed because their object will be invalid. (They can reassigned ofcourse and reused).
+
+- The [Simple String] type that we will referenced them as [String] are managed. Every assigment or creation,
+creates a new copy of the string , and the memory is handled and is freed automatically internally. 
+This makes the simple strings inefficient, but good enough for most of the operations.
+
+- The types of [Integer],[Real],[Boolean] and [CodePoint] are managed and the same rules as with the [Simple String] are applied.
+
+- To release the memory at will, use the appropriate functions for the specific datatype.
+
+Warning : Hydra+ runs a simple algorithm when terminates to clean up the memory avoiding weird [access violation] errors, 
+in case of existing cross references between variables that the script code has not handled 
+(released or freed when are not used any more). In actuality no impact in memory consumption or in efficiency 
+this condition has, as this is a problem when the Hydra+ is terminating, so a non issue, because we can skip 
+the memory clean up all together. But in the future may i make it possible to call a full Hydra+ object to execute a script
+from another Hydra+ object and then an access violation or a moderate memory leak will be very bad.
+
+Memory Allocation and Consumption
+
+[Hydra+] was designed to operate with no real constrains in system memory. That means that while its basic 
+memory foorprint is small, in operations with large strings and files, Hydra+ can be very memory consuming.
+This is because when a string is allocated and passed in variables or in calculations,
+then all the (simple) strings memory is copied. So the memory we need for one string is multiplied when the string is proccesed.
+Ofcourse this memory will be released afterwards and the memory consumption will just spike for some time 
+before returning to the base.
+Another memory consuming point, is when the script calls a system function that makes some proccessing in a 
+large string that loads from a file. For example, the system functions that loads the contents from a file to a string,
+does not use the file as a stream to read bytes to a limited buffer, but the file size is recovered 
+and an appropriate large buffer is created to load all the contents of the file at once.
+In most of the cases this is not a real problem as the memory of the modern machines are in the order of GigaBytes,
+but for small linux distros with memory in the order of few megabytes, the program must calculate precisely the memory 
+that Hydra+ will need. Ofcourse the programmer can create its own functions to load the file to a [Bytes] object as they see fit.
+
+Another point of consideration is the [Dataset] type.
+A dataset is an object that holds the results of a [select] query. When the query executes succesfully,
+Hydra+ loads ALL the results in the dataset from the database driver to the local [Hydra+] memory.
+So very large results will occupy alot of memory.
+
+--- Hydra+ release model --
+
+Hydra+ will be an open source project AFTER rigorous testing and operation under real conditions. 
+Its license will be one of the many open source licenses with the most probable the MIT license.
+
+Creator : Mourgis Nikolaos
+Web Page : deus-ex.gr
+Domain : DeusEx
+
+DeusEx 2024
+
+Live Long and Prosper
+
+
+
+--- Quirks and Trivia ---
+
+In this section we will review some quirks and syntax particularities of the language. 
+
+-Instruction size
+
+Hydra+ accepts as maximum instruction size for a single instruction the 100KB limit.
+That means that you cannot assign in a variable or string constructor a string that is bigger than 100 KB.
+For trully big texts use the appropriate string functions for loading text from files (or accepting data from the network).
+
+-Operand size
+
+Hydra+ sets a hard limit in an operand length to 1024 characters. That means that when you try to concatenate strings,
+every literal operand can be only as large as 1024 characters. This limit is applied to the arithmetic calculations too.
+You can circumvent this limit if you assign large strings in variables and concatenate the variables. 
+
+-Name handling
+
+It's infinitesimal, but there is a difference in the interprentation time when the variables names
+or the custom functions names are larger than smaller, as this names are being stored [as is] in the
+instruction tree and the interpreter compares the names to find the apropriate object when need it every time.
+
+-Syntax constrains
+
+The syntax (except when a bug have sliped! xD) is rigid and forbids some actions that other languages permit.
+Most notable ones : 
+
+-The function name is coupled with its parenthesis, for example the echo($some_string) is valid,
+but the echo ($some_string) is not. (Notice the space after the echo).
+That happens because it is possible a token to be acompanied by a calculation inside a parenthesis pair.
+So function names are coupled with its parenthesis to be easily recognized by the interpreter. 
+
+Another important syntax limitation is that the interpreter does not resolve variables that
+are returned from functions, to take part in calculations.
+For example the someFunction().ToString(0) or someFunction()[$index] ARE FORBIDDEN.
+To use the returned variables assign them first. Example : $var = someFunction(); echo($var.ToString(0)); 
+
+-Creators Note
+
+Yes the above syntax it is forbidden. Why you ask? I have suffer while trying to see and understand syntaxes in languages
+like javascript with so many chained functions that make you dizzy. 
+I hate it. I use it ofcourse when i write code because is really convinient. But i hate it so in my language
+I forbade it :D !      
+
+-String encoding
+
+Hydra+ uses strings encoded in UTF8 ONLY ! There is a type that is the [Unicode String] that is four bytes long
+but it is expiremental and not fully supported yet. For that reason is not documented in this file.
+For different encodings use the appropriate convertion functions (if exists) or the [Bytes] type.
+
+--Variables, Blocks, Scope and Functions
+
+-Blocks
+
+Hydra+ has the consept of code blocks. The script itself is the first and all encapsulating code block.
+Every {} is actually a code block, with the {} of the main script file to be implied.
+Saying that, Hydra+ does not permits empty blocks or stray blocks.
+A block MUST includes a valid instruction or some comment. If a block must be empty e.g. for a function
+that is not yet implemented, you can add the [nop] special instruction or naturally you can add the [return] instruction.
+The [nop] instruction can be used in every block and it does nothing.
+
+- Variable Scope -
+
+-Natural Scope
+
+A variable in Hydra+ can be visible in all the blocks that are nested in the block that the variable was declared
+(and the current block ofcourse). If a variable with the same name is declared in a nested block,
+then this variable will be the only one visible to the specific block and the nested blocks in it. 
+
+-Scope and the Functions
+
+Functions that are not [async] can access the variables in the main script block but as read only variables.
+If a value is assigned, then the interpreter does a new variable declaration and creation for the local block.
+An exception is the variables that are being declared as [Globals].(See later in this text).  
+
+Manipulate the Scope
+
+There is a special instruction in Hydra+, that can manipulate the scope that is visible in a function.
+This instruction is the instruction [go]. You can use this instruction like : go myfunc();
+When a function is called by the [go], two important things are happening. First the returned value of the function
+will be disposed and it will not returned anywere, so you must design for it. The second and most important,
+is that the parent of the function block, will be set to be the block from where the [go] instruction executed.
+In the above example the myfunc() will have access to the variables of the calling block.
+Where is this usefull? This is not extremelly important functionallity, but it can give to a function flexibility
+in the way that can use destructors to its object without the need to rewrite code. For example the code:
+
+func afunc()
+{
+ $list = List.CreateList();
+.
+.
+$list.free()
+}
+
+can be writed as :
+func releaseList()
+{
+ $list.free();
+}
+
+func afunc()
+{
+ $list = List.CreateList();
+.
+.
+go releaseList();
+}
+ 
+In the above example the [go] instruction does not changes the code readability. But if the function [afunc]
+needed to free 10 different objects in 10 different branches , then this syntax would be much more cleaner and easier to maintain.
+
+-Strings in lists
+
+The [Simple Strings] in Hydra+ are managed by the interpreter, meaning that we have not to worry about freeing their memory.
+This is achieved by creating internally a copy of the string and dispose it after its use. This creates the following quirk
+that i consider inconsequential and thus is will not rectified (at least for now as my time is very limited.)
+
+Quirk : 
+When a list have an element that is a simple string, for example $list[] = "hello"
+You must not invoke self altering functions from the string. For example , if you do a $list[0].ReplaceBinary("he","ho",0,false)
+the $list[0] will stay unchanged. The correct way to alter the element is : 
+$str = $list[0]; 
+$str.ReplaceBinary("he","ho",0,false);
+$list[0]=$str ; 
+
+This is happening because the $list[0] will return a copy of its element , the function will change the copy,
+the copy will be destroyed because it will not be assigned back to the list , and all the changes will not be reflected.
+
+This is not a BUG!!! It is a feature!!!!!!  xD
+
+
+NOTE ! Hydra+ is lazy. Because is lazy, when a function exits, its internal variables does not clear their values.
+This is not a problem, as the next time that the function will run (if not detached of course, see the [detach] instruction)
+the previous values will be overwrited by the function code that will run. There is an exception case though. 
+If for example you have the following code (we presume that the variables are being declared) : 
+
+func myfunc($type)
+{
+  .
+  .
+  .
+
+$clConn = undef(); 
+if($type == "MARIADB")
+		{
+		  $clConn = Database.MariaDB($host,$user,$pass,$db,$iport,$error);
+	    }
+		else
+		if($type == "SQLSERVER")
+		{
+		  $connStr = "Driver={"+$__SQLSRV_DRIVER+"};Server="+$host+";Database="+$db+";Uid="+$user+";Pwd="+$pass+";Encrypt=YES;TrustServerCertificate=YES";
+		  $clConn = Database.ODBC($connStr,$error,true);
+	    }
+
+#do something
+
+return;
+
+}
+
+
+The first time that the function will run all will be correct and not errors will be emitted from the interpreter.
+BUT the second time that the function will run an error message will be emitted like : 
+
+ ---- The variable [$clConn] cannot be set to undefined like that. Try to use its Free() or Release() function.
+      Variable Type : [database]. If the variable is initialized in this way and then is assigned an object 
+	  in a loop or function , this means that you have not Free() or Release() the variable.
+	  Please do Release() or Free() the variable after use. -----
+
+This means that you forgot to Free the $clConn. If you do not Free the variable properly before the function exists,
+and then in the next execution the functiom try to set the variable to [undefine], then the interpreter will emit this error.
+I decided to left this error in place , as it can help to eliminate some memory leaks, when a .Free() is forgotten.
+
+
+
+
+--- Run , execute , input and output ---
+
+-Console 
+
+Hydra+ supports UTF8 output to the console in Windows and Linux. For now there is not support for input,
+except of the special command line parameters that sets variables in the script with values from the command.
+
+-Execute a Script
+
+To execute a Hydra+ script, you can write to the console or in a OS script something like the following :
+  hydra+ mainscript.hydra 
+The mainscript.hydra will be executed.
+
+-Create an Obfuscated File
+
+Hydra+ supports scripts that are encrypted with the internal key that the Hydra+ has compiled with.
+To create an obfuscated file you can run the command : 
+Hydra+ -o somescript.hydra
+The Hydra+ reads the somescript.hydra and creates a new obfuscated file in the same dir, with the same name
+but with the added extension [.obf]. For the previous example the file that will be created is the : somescript.hydra.obf 
+
+Note :
+An obfuscated script is a script that Hydra+ can load and executes either as a main script
+or as a included file, but the actual file has been encrypted with the internal Hydra+ encryption key.
+WARNING ! This obfuscation does not make the script 100% safe of reading. A competent programmer
+can just monitor the execution of the [Hydra+] in debuger or on a dissasembler and retieve
+the actual plain text of the script or the internal key with ease. This is more for protection
+against tampering of the code from unskilled persons.   
+
+-Create a Monolothic File
+
+A Hydra+ project has a structure, more or less, as a source code tree. If a project has different included files then 
+all this files has to be present for the script to run succesfully. Some times though its much more convinient
+to have one single file for the script to deploy and run. Hydra+ can create a monolithic file from the main script file
+and its includes, ready for execution. To create a monolithic file run the command :
+hydra+ -c c:\myapp\main.hydra 
+The above command will create a main.hydra.comp file and a main.hydra.obf file.
+Both of the files are executable by [Hydra+]. The .comp file is the monolithic file with human readable characters
+and the .obf is the monolithic file with its contents obfuscated.
+
+-Pass Parameters from the Command Line
+
+Hydra+ is not focused in the command line for input or output but for convinience can take values from the command line
+and fill variables in the script mid execution. To use this feature, set in the main script the variables
+that will be set from the command line, for example : $param1 = "" ; $param2 = 0 ;
+In the command prompt run Hydra+ as :
+
+Windows -> Hydra+ mainscript.hydra -p [$param1=`hello`,$param2=5]
+
+Linux   -> Hydra+ mainscript.hydra -p [\$param1=\"hello\",\$param2=5]
+ 
+Now the parameters are stored and ready to use but are not set into the variables. When the need arise to set 
+the script variables from the command parameters, call in the script the special instruction [fill_params].
+The fill_params can be called many times in the script, and every time it will overwrite the current values
+of the variables and it will set the values from the command line.
+
+
+--- Loader directives ---
+
+The loader supports one directive and two path modifiers.
+
+-Include Scripts
+
+The loader supports the [include] directive. This directive instructs the loader to add more files in 
+the main script file for execution. The [include] directive is limited. It can only be used in the main script file,
+and can be used only in the top of the file. Before the [include] cannot exist any other instruction. Examples :
+
+include "some_file.hydra";
+
+-Path Modifiers
+
+%main_script_dir%   : The loader will replace this string with the path of the directory of the main script.
+%hydra_install_dir% : The loader will replace this string with the path of the directory in which Hydra+ executable resides.
+
+Examples : 
+
+include "%main_script_dir%incl1.hydra" ;
+include "%hydra_install_dir%functions.hydra" ;
+
+
+NOTE :
+The paths that the Hydra+ use for the above directives, are retrieved by the command line that executed the [Hydra+].
+So if the command line does not have the full paths of the executable or the script , then maybe the result of this directives
+will not be the ones desired.
+
+
+--- Syntax , variables , types , comments ---
+
+-Hydra+ Syntax
+
+Comments : Hydra+ supports three types of comments, the one liner '#' , the multiline [**] and the special one liner comment '?'
+The special comment does not do anything really special , but it can be used for critical comments or to declare the return type 
+of a function e.g. 
+func retHello()?String
+{
+  return "hello" ;
+}
+.
+
+Examples : 
+
+#hello this is a comment
+
+[*
+ this is a multiline
+ comment
+*]
+
+?This is very important!!!
+
+
+-Variables
+
+The variables in Hydra+ are being declared with the '$' character as a prefix, for example, $var1 = 10 ;
+When a variable is declared , in the same time its type must be set. For example , to create a [String] variable, we have to 
+write : $var = "" ; or '$var = ``; The syntax $var; is not valid.    
+
+-Variable types
+ 
+ undefined : A special type analogous to NULL. Some variable types when are freed manually their type reverts to undefined.
+ 
+ pointer   : The variable stores a native pointer. To create a variable that is used as a pointer use the syntax 
+ $var = pointer(); The pointer type is used by some native Hydra+ functions to pass parameters or store 
+ objects between them and the script for some third party libraries.
+ 
+ real      : A real number. Internally is represented by a C double type. Every declared numeric variable is a real type.
+ Examples -> $num1 = 0; $num2 = 23.3; $num3 = 7 ;
+ 
+ integer   : An integer. Internally is represented by a C int64_t type. To create an integer use the syntax $int = integer(10); 
+ 
+ boolean   : The variable can have as a value the [true] or [false] special tokens. Internally is represented by an integer.
+ Example -> $bool = true ; 
+ 
+ list      : A simple dynamic list. It can store any type of variable in its elements, and can access the items 
+ with numeric or string indexes. The list is represented internally as a simple double linked list. 
+ The items (elements) accessing is in serial, so its not very efficient for searching and random access. 
+			   
+ string list          : A string list. The list stores simple strings as lines in the list.
+
+ sorted string list   : A string list that sorts the elements that are inserted in it. THIS IS NOT IMPLEMENTED YET .
+ 
+ sorted integer list  : A list of integers that sorts the elements based of the integer value that they hold.
+ THIS IS NOT IMPLEMENTED YET.
+ sorted real list     : A list of real numbers that sorts the elements based of the real value that they hold.
+ THIS IS NOT IMPLEMENTED YET.
+
+ fast list            : A list that can store any type of variable but saves the items in a hash table for fast recovery. 
+ The index that will be used in the element insertion MUST be a string. This list has superior performance in speed 
+ in element retrieval than the simple list.
+						
+ http client          : A simple http client for convinience . THIS IS NOT IMPLEMENTED YET(and maybe will never be
+ because its very easy to do http request in hydra+).
+
+ database connection  : A database connection object that is used to connect in a supported database for executing queries
+ and retrieving datasets.
+
+ dataset              : A dataset that has been created from a database object and can be accessed as a list.
+ 
+ tcp socket           : A tcp socket that can connect to a server.
+ 
+ tcp server           : A tcp server socket for accepting connections.
+ 
+ ssl client           : An ssl client socket for ssl connections(powered by wolf ssl).
+
+ ssl server           : An ssl server that accept connections(power by wolf ssl).
+
+ bytes 				  : An array of bytes.
+
+ file                 : A file object for file manipulations.
+
+ string	              : A simple string. You can declare a simple string with "" or ``.
+ 
+ concat string        : A string that internally is a string list. Is used for faster operations in concatenations.
+ 
+ expand string        : A string that is used for efficient variable expansion in large (or small) strings. 
+ 
+ codepoint            : A unicode codepoint (character that is described by 4 bytes).
+
+ object               : A user defined object.
+
+
+-- GLOBALS
+
+To set a true global variable (one that all the functions can access even the [async] ones and the
+actual value can be permanently changed) you have to prefix its name with the '$__'. For example : $__global1 , $__global2.
+For all the functions and objects to have access to the globals , globals MUST be declared in the start of the script
+OR before the call of the functions or objects that they will used them. NOTE : Will be CALLED not declared.
+
+
+
+
+--- Instructions and Commands ---
+
+-Evaluations 
+
+Supported arithmetic operators : +-*/%^
+Supported string operators : + (concatenation)
+Supported comparisons string operators : != (different) == (equal)
+Supported comparison operators for numeric : < > <= >= != ==
+Supported boolean operators    : ||(or) &&(and)
+
+-Loops
+
+The only supported loop structure that the Hydra+ has, is the [loop]. The [loop] supports two directives,
+the [break] and the [continue]. The [continue] has two forms. The simple one is : [continue;]
+and the complex one is : [continue some_function_to_exec();]
+ 
+Examples : 
+
+loop
+{
+  echo("Eternal loop!!");	
+}
+
+$indx = 0 ;
+loop
+{
+  if($indx == 100) break ;
+  echo("Print me 100 times!");
+  $indx = $indx + 1 ;
+}
+ 
+loop
+{
+  if($indx == 100) break ;
+  if($indx == 50) 
+  {
+    $indx = $indx + 1 ;
+    continue ;
+  }
+  echo("Print me when index passes 50 ! : "+$indx.ToString(0));
+  $indx = $indx + 1 ;
+}
+
+loop
+{
+  if($indx == 100) break ;
+  if($indx == 50) continue inc($indx);
+  echo("Print me 99 times!");
+  $indx = $indx + 1 ;
+}
+
+
+-Branching
+
+The supported branching instructions are the [if(){} else{}] and the [switch(){}] instructions.
+Keep in mind that the switch() instruction does not use the [break] or the [case] command like the C like languages.
+
+Examples 
+
+IF : if($var1>$var2){echo("Hello");} 
+else
+	       if($var1<$var2)
+	             {echo("Goodbye");}
+	 else
+                        {echo("Salut");}
+
+if(($var1 == true)&&($var2 == false))
+{do_something();}
+
+SWITCH :
+
+switch($var)
+{
+ 1: {echo("1");}
+ 2: {echo("2");}
+ 3: {echo("3");}
+ 10: {echo("10");}
+ default : {echo(8);}
+}
+
+In the [switch] , For the same handler for diferent values, the handler must repeat itself. Example :
+
+switch($var)
+{
+ 1: {echo("no operation");}
+ 2: {echo("no operation");}
+ 3: {echo("no operation");}
+ 10: {echo("10");}
+ default : {echo(8);}
+}
+
+
+
+--- User Functions --- 
+ 
+Naturally, Hydra+ supports the creation of functions. A function can be declared anywhere in the script.
+To declare a function, write : 
+func function_name($param1,$param2,.,.,.,.){function body}
+
+A function can return a variable of any type. Every parameter in the function is passed as an absolute reference
+to the variable (except when the parameter is in fact a calculated expression) and not as a copy of the 
+object or a reference of the object of the variable. So be cautious with the memory deallocation and the 
+altering of the parameters values.
+
+Example :
+
+func Echo_Hello()
+{
+   echo("Hello!");
+   return ;
+}
+
+func Echo_Hello_Name($name)
+{
+	echo("Hello "+$name);
+    return ;
+}
+  
+func Ret_Hello_Name($name)
+{
+   return "Hello "+$name ;
+}	
+
+func Change_Param_Value($val)
+{
+  $val = "New value" ;
+}
+
+
+-Executing a function from a string
+
+Very often is very usefull to execute a function based in some conditions that is not known before hand.
+Hydra+ does not support function pointers , as its whole design is heavily based in string translation for executing code.
+But it offers the next best thing. The special command [asfunc]. The command [asfunc] needs a string
+that describes a valid user function and it execute it. For example , the following instructions are all valid
+(given than the function are actually declared in the script).
+  
+asfunc "myfunc()";
+asfunc "myfunc($param1,$param2)";
+$var1="myfunc()" ; asfunc $var1 ;
+
+Keep in mind that when you execute a function in string form , the function that will be executed will
+use as its parameters (if it has parameters) the local (or globals) variables that will have the same names.
+For example :
+
+$var1 = "test" ;
+asfunc "myfunc($var1)";
+
+in the above example the myfunc will use as a parameter the $var1 variable that is declared in the scope.
+
+-Executing a function in another thread (async)
+
+The user functions can be executed asynchronously. if a function is executed as [async],
+then a new thread is created and the function code will be executed in this new thread.
+
+An async function does not return any value after its execution, and if returns, the value is lost
+(beware of memory leaks due to lost returned values).The async function can still alter the global 
+variables and their own parameters (with some limitations. See earlier in the document about the parameters references).
+Hydra+ has a set of system functions that return and control threads and its infos.(see later in the document).
+
+Syntax : async "thread id" @thefunction($params....)
+
+After the [async] instruction, you have to set a string as the thread id. 
+This can be very important for checking the status of the function or to send special commands. 
+
+Special commands for the threads
+
+[terminate "some id"] -> Send the terminating signal to the thread from another thread. If the id is "main" then Hydra+
+will be terminated. For example : terminate "main" ;
+
+[message "some string"] -> A thread other than the main thread can call this instruction to set a message 
+in the threads special info.(See the following in the text).   
+
+threadInfo("thread id") : List[message,running,error,exist] -> Returns a list with the specific elements.
+The [message] is the message that the thread has set if any. The [running] is true if the thread is running and false if not.
+The [error] is true if the thread was terminated by an interpreter error.
+The [exists] is the first element that it must be checked. If true then the [thread id] does exists
+and the values in the members are valid. If its false then a thread with this string was not found.
+
+[terminateAll $seconds] -> Send the terminating signal to all the threads
+and waits [$seconds] seconds, before invalidate all the thread ids in the internal structure.
+
+getThreadId():String : Returns the id of the current tread that the function was called from. 
+
+Note that if you set the same [thread id] in more than one thread, then the thread will happily
+be created and when you try to retrieve the thread's info you will retrieve always the first one in the list.    
+
+Summary of thread related functions and special commands : 
+
+async "some id" @user_function();
+terminate "some id"
+message "some string"
+threadInfo("thread id") : List[message,running,error,exist]
+getThreadId() : Thread id
+terminateAll $seconds 
+
+-Async Functions parameters quirks
+
+As we have already mention , the function parameters are passed by absolute reference. That means that in the function 
+is passed a reference to the variable that is passed as parameter and we will named as [absolute reference].
+
+This is not true for the async functions. In the async functions the parameters pass as a ["weak" reference],
+this means that in the function is passed a reference to the object of the variable and not the variable itself.
+This is for practical reasons as there is a lot of problems in shared memory with threads.
+A consequence of this is that any change in the value of the parameter will impact the actual variable as per usual,
+EXCEPT the Numeric variables , the booleans and the code points.
+Because this values are stored to the variable itself and are not stored as object in the variable.
+I do not see any true merit to write more code to mitigate this condition as it is discouraged to alter global memory 
+in the async functions, albeit there is the mechanisms to achieve this.
+After all if the async gets as a parameter a List of some type or a user defined object (see later in the text)
+it is perfectly capable of adding , deleting or altering their data.
+
+-Executing a function in its own memory space (detach)
+
+Hydra+ has a unique memory scheme for executing functions.
+For more information see the article Detach Functions and Memory Scheme.
+
+
+--- Objects ---
+
+Hydra+ has limited support for objects, for better organization of bigger projects.
+An object is a simple collection of variables and custom functions.
+
+Syntax : 
+An object class can be declared in the script and then a script can create as many instances of the object it needs.
+An object instance put some burden in the memory because i opted for a simple design and the instance will be a copy 
+of all the functions and all the variables of the class object. 
+
+An object function is executed by the current interpreter like a normal custom function and it can return a value as usually.
+An object function cannot run [async] as the [Hydra+] cannot determine if the object variables will not used from the main 
+thread in the same time with the async thread.
+An object function can use the global variables that are declared in the script.
+An object function can use the variables and the functions of its object as they had being declared in the local scope.
+In the local block of an object function is forbidden to declare a variable with the same name as one of the variable
+members of the object.
+The objects can be dynamically created in the script. For releasing the memory when is not needed a special function
+is added in all objects instances : $obj_instance.Free(); The Free() function releases all the memory that the object occupy.
+
+Remember : The object functions cannot be executed as async.
+
+The objects instances are stored in the code blocks that are declared and the scope rules are the same as the normal variables.
+An object can run initialization code in its declaration. 
+To create a new instance use the [Class] domain, for example, $instance = Class.some_class ;
+
+Objects have the $_OBJ_NAME special member that has the variable name that stores the object instance. 
+In the object initialization code, the object CANNOT use its functions or the $_OBJ_NAME 
+variable.
+
+Examples : 
+
+obj someDate
+{
+  $date = dateInfo("2024-07-07 00:05:00");
+  
+  func echo_day()
+  {
+    echo($date["month day"].ToString(0)) ;
+  }
+  
+}
+
+$test = Class.someDate ;
+echo($test.date["year"].ToString(0));
+$test.echo_day();
+
+
+
+
+--- Accessing Elements or Members --- 
+
+Some Hydra+ data types can being accessed by an index or a name.
+
+-Objects
+
+The objects instances can access their functions and variables with the dot [.] character, 
+in the same way that the other data types behave.
+
+-Simple List
+
+A list can access its elements in the following ways -> 
+
+Numeric index : 
+$list[0] = "hello" ; echo($list[0]) ;
+
+String index  : 
+$list["element 1"] = "hello"; echo($list["element 1"]) ;
+
+As a member   : 
+$list.element_1 = "hello" ; echo($list.element_1); 
+The 'As a member' access can be used only if the string index has not any spaces in its name.
+
+The simple list can create new elements with the syntax :
+$list[] = "a value" ;$list[] = Class.some_obj ; $list["string_index"] = 15 ;
+
+-String
+
+A string can access its characters with the syntax :
+$string[$index]
+Note that all the strings are UTF8 strings. When a character is retrieved, like echo($string[$indx]); 
+a unicode character is returned as a 32bit integer. When you try to set a character by indexing, 
+Hydra+ replace the character ONLY if its in the same unicode range.
+For example if the $string[$index] is a two byte character,
+you can set only another two byte character to be replaced.
+For example :
+
+$string = "hello" ;
+$string[0] = "H"  ; -> valid 1 byte character 
+$string[0] = "Φ"  ; -> invalid 2 bytes character
+ 
+For arbitrary replacements see the appropriate (and more flexible) functions of the [String] domain.
+
+-Bytes
+
+The [Bytes] type is in essence a block of bytes in memory. Internally is represented as a C char* type.
+You can access individual bytes with the usuall indexing of : $bytes[$indx] ; 
+
+-Fast List
+
+A fast list can access its elements with the $list.element_name or $list["element_name"] syntax.
+For special purposes the Fast List can be accessed with an index (but not in order of insertion),
+with the syntax of $fast_list[$indx].
+Keep in mind that for every call with this syntax the list is accessed in serial from the beggining until finding the element
+in the index. So use it only if there is a very special need. For serial access in a loop the simple list 
+is a lot faster as it is optimized to access its elements in loops very efficiently.
+
+StringList
+
+A StringList can be indexed only with a numeric index : $strlist[$indx] ;
+			 
+Sorted String List
+
+A sorted string list can be indexed only with a numeric index : $strlist[$indx] ;
+			 
+Sorted Integer List
+
+A sorted integer list can be indexed only with a numeric index : $ilist[$indx] ;
+
+Sorted Real List
+
+A sorted real list can be indexed only with a numeric index    : $rlist[$indx] ;
+
+
+
+--- Domains ---
+
+Hydra+ has the consept of domains for grouping functions and objects. 
+The domains can have creation functions that are being called by the domain name , and member functions
+that are called as members of the specific variable.
+
+--Strings
+
+The strings are one of the most used and usefull objects in Hydra+.
+The following text describes the creation and manipulation functions and methods of the [String] domain.
+
+Note
+
+The strings in [Hydra+] are separated to [Simple String] that are commonly refered as 'string' 
+and internally are just large memory blocks with characters, and the [Complex Strings] that are more sofisticated 
+and performant, albeit more rigid to use.
+
+
+--Functions
+
+String.Create(`some string`,[concat,var_expand]) : Complex String 
+
+The [Create] function creates a new complex string.
+
+The [concat] creates a string that can concat other strings to its end fast with minimal deallocation / reallocation of memory.
+
+The [expand] creates a string that can have the syntax of {$var_name} in its body and can produces 
+a simple string with the variables resolved to their respected values at the time (see the domain function .Expand()). 
+Example : $mystr = String.Create("This is a new string",concat); 
+
+
+-Domain String Functions
+
+To call a domain function you can use the syntax of $myvar.A_domain_function();  
+
+.ToSimple():[simple string]
+Creates and returns a [Simple String] (this function is valid only for [concat] and [var_expand] complex strings. 
+For the [var_expand] the variables are NOT resolved and the string is returned with the variables in the last known state
+of the string. 
+
+.Concat($string) 
+The function adds the $string to the caller. The function alters the caller and does not return a new string.
+This function is valid only for the [concat] or [expand] string types, the simple strings can be concated by the [+] operator.
+
+.Replace($word,$replace_with,$from_index,$replace_all)
+The function replace the $word string with the $replace_with string, starting from $from_index.
+If the $replace_all is true then all the instances of the $word will be replaced, else only the first occurrence
+of the $word will be replaced. the caller string will be altered. This function is valid only for the [Simple String] type.
+
+.Expand()
+This function is applicable only for the [var_expand] type of string. When the function is called,
+then the string alter its internal state and expand the variables in the string.
+Every time the function is called the variables are expanding with they current values and the string is changing acordinally.
+
+.ExpandToSimple():String
+This function is applicable only for the [var_expand] type of string. When the function is called
+a simple string is returned with the variables expanded BUT without changing the internal state of the string.
+That means that if you call an .Expand() and then .ToSimple() you will get the string [A]. If then
+the values of the variables change and you call the .ExpandToSimple() you will get the string [B].
+If now you call the .ToSimple() function you will get again the string [A], because the .ExpandToSimple()
+does not alter the internal state of the string.
+
+.Assign($str)
+Change the callers value to the $str value.
+The caller can be only a complex string type as the simple strings can be assigned with the '=' operator.
+
+.Length():[integer]
+The function returns the length of the caller in characters. The [var_expand] complex string does not support this function.
+
+.ByteCount():[integer]
+The function returns the length of the caller in bytes. The [var_expand] complex string does not support this function. 
+
+.RemoveChar($char)
+Removes the $char character from the string. Alters the caller.
+
+.ReplaceChar($char,$replace_with)
+Replaces the $char character with the $replace_with character. Alters the caller.
+
+.FindWord($word,$from_index)[integer]
+Searches for the $word string in the string starting from the $from_index.
+Returns the position of the first byte of the first character of the $word that was found.
+
+$str.FindWordBinary($word,$from_index)[integer]
+Searches for the $word string in the string starting from the $from_index ,
+returns the position of the first byte of the first character of the $word.
+This may be faster if we know that the string has only simple ansi characters,
+as it ommits the checks and the validity code for the utf8 characters.
+
+.Replace($word,$with_word,$from_indx,$replace_all):[integer]
+Replace the $word string with the $with_word string starting from $from_indx.
+If the $replace_all is true, then all the instances of the $word in the string will be replaced,
+else only the first occurrence of the $word will be replaced.
+After the function execution the caller will be altered. This function is valid only for [simple strings]. 
+
+$str.ReplaceBinary($word,$with_word,$from_indx,$replace_all):[integer]
+Replace the $word string with the $with_word string starting from $from_indx.
+If the $replace_all is true, then all the instances of the $word in the string will be replaced,
+else only the first occurrence of the $word will be replaced. After the function execution the caller will be altered.
+This function is valid only for [simple strings]. This may be faster if we know that the string has only 
+simple ansi characters, as it ommits the checks and the validity code for the utf8 characters.
+
+.Empty()
+The function empty all the contents of the caller. The [Simple String] can achieve the same result with the syntax of $str = ""; 
+
+.CopyIndx($from_indx,$to_indx):[simple string]
+Return a new string that its contents are the characters from $from_indx to $to_indx.
+The function is aplicable only to [Simple String].
+
+.Copy($from_indx,$chars_to_copy):[simple string]
+The function returns a new string that its contents are the characters of the caller starting from $from_indx 
+until $chars_to_copy. The function is aplicable only to [Simple String].
+
+.CopyToChar($from_indx,$to_char):[simple string]
+The function returns a new string that its contents are the characters of the caller starting from $from_indx
+until the $to_char. If the $to_char does not exists, then the characters until the end of the caller will be returned.
+The function is aplicable only to [Simple String].
+
+.CopyIndxBinary($from_indx,$to_indx):[simple string]
+Return a new string that its contents are the characters from $from_indx to $to_indx.
+Use this if the string contains only ansi characters as it may be faster. The function is aplicable only to [Simple String].
+
+.CopyBinary($from_indx,$chars_to_copy):[simple string]
+The function returns a new string that its contents are the characters of the caller starting from $from_indx
+until $chars_to_copy. Use this if the string contains only ansi characters as it may be faster.
+The function is aplicable only to [Simple String].
+
+
+$str.CopyCharBinary($from_indx,$to_char):[simple string]
+The function returns a new string that its contents are the characters of the caller starting from $from_indx 
+until the $to_char. If the $to_char does not exists, then the characters until the end of the caller will be returned.
+Use this if the string contains ansi characters as it may be faster. The function is aplicable only to [Simple String].
+
+.TrimLeft($characters)
+Trims the $characters from the left of the caller.
+The function is aplicable only to [Simple String]. The caller will be altered.
+
+.TrimRight($characters)
+
+Trims the $characters from the right of the caller.
+The function is aplicable only to [Simple String]. The caller will be altered.
+
+.Trim($characters)
+
+Trims the $characters from the caller.
+The function is aplicable only to [Simple String]. The caller will be altered.
+
+.ToInteger(out-> $error:[simple string]):[Integer]
+
+The function returns the string converted to integer. The function is aplicable only to [Simple String].
+Warning! Always check the $error variable. If its empty ("") then the conversion was a success,
+else an error message will be set.
+
+$str.ToReal(out-> $error : [simple string]):[Real] 
+The function returns the string converted to a real number. The function is aplicable only to [Simple Strings].
+Warning! Always check the $error variable. If its empty ("") then the conversion was a success, 
+else an error message will be set.
+
+.AddFromFile($file:String,out-> $error:[simple string])
+Adds the contents of the $file to the caller.
+Beware to not open a binary file as the 0 value will invalidate the contents.
+The $error will be empty ("") in success or with an error description in failure.	
+
+.SaveToFile($filename:String, out-> $error:[simple_string] )
+Saves the contents of the caller to a file with the name of $filename.
+The $error will be empty ("") in success or with an error description in failure.
+
+.SetFromChars(Chars : String[#13#10...])
+Hydra+ does not have an easy way to add non printable characters in a string.
+This function mitigates this problem. The function will get a string in the format of "#number#number..."
+and it will set the caller to the particular string that the format produces. For example,
+to create a pair of crln characters the format will be like : $line_end.SetFromChars("#13#10").
+If then you want to add this characters to the end of a string you can do a simple $str = $str + $line_end; 
+The function is aplicable only to [Simple Strings].
+
+.GetExt():[Simple String]
+
+Returns the extension of the file. The function assumes that the string that calls it is of the form 
+"somestring.someotherstring". The function returns the string right of the dot[.] character. 
+If a dot [.] character does not exists , then all the string is returned. The function is aplicable only to [Simple Strings].
+
+.CharPos($char : Char,$from_indx:Integer):Integer
+Returns the position of the $char starting from the $from_indx or -1 if the character does not exist.
+The function is applicable only to [Simple String].
+The $from_index is in bytes and the returned value is in bytes too.
+The returned value is in relation with the $from_indx, so if the $from_indx is 10 and the return value is 5 then 
+the actual position is 15. The function is aplicable only to [Simple Strings].
+		
+.CopyUntilChar($char : Char,$from_indx:Integer):[Simple String]
+Copies the string from $from_indx until the character $char. If the $char does not exists then all the string from 
+$from_indx until the end is copied and the $from_indx will set to -1. 
+When the function returns, the $from_indx will have the position of the next character after the $char 
+OR if the character is the last of the string , the $from_indx will
+have the position of the $char.	The function is aplicable only to [Simple Strings].
+
+.Explode($sep:[Simple String]):StringList
+The function explodes the caller to parts based of the $sep as separator and returns a stringlist.
+The separator can be one or multiple characters of the ansi codepage. Examples of separators : [,][->],[=],[==] etc
+
+.UrlEncode($space_as_plus:Boolean):[Simple String]
+The function encodes the caller as a safe for url string. If the $space_as_plus is true then the space will be encoded
+as [+] and not as a [%20]. The function is aplicable only to [Simple Strings].
+
+.UrlDecode($plus_as_space:Boolean):[Simple String]
+The function decodes the url encoded caller to the original string.
+The function is aplicable only to [Simple Strings]. If the $plus_as_space is true then the function will 
+replace the [+] symbol with a space.   
+	
+.Base64Encode():String
+The function returns the caller encoded to Base64.
+The function is aplicable only to [Simple Strings].
+
+.Base64Decode():String
+The function decodes the caller that is encoded to Base64.
+The function is aplicable only to [Simple Strings].
+
+B64DBinary():Bytes
+
+The function decodes a Base64 string to its binary representation. Ofcourse the data must have binary data before the encoding.
+The function is applicable only to [Simple Strings].
+
+.JsonToList($error:String):List
+
+The function returns a list that is produced from a json formated string.
+All the json string is converted in native Hydra+ objects. The first element of the list
+is the root of the json. The json objects are mapped as following in the list:
+Array -> [Simple List]
+Object -> [Fast List]
+Number -> [Real]
+String -> [Simple String]
+
+You can use the typical functions and methods to determine the type of the object , the element count, the value etc.
+Note : Do not forget to start accessing from element 0. For example :
+ $json = $str.JsonToList($error);
+ echo($json[0].name) ;
+ 
+The function is applicable only to [Simple Strings].
+
+
+.XorHex($key:String):String
+The function xors the string with the key and returns the hexadecimal representation of it.
+The function is applicable only to [Simple Strings].
+
+.XorHexStr($key:String):String
+The function restore a (XorHex) string.
+The function is applicable only to [Simple Strings].
+
+.Xor($key:String):Bytes
+The function xors all the bytes in the string with the key and returns 
+a Bytes type filled with the xored bytes.
+The function is applicable only to [Simple Strings].
+
+.Upper():String
+The function return the latin characters of the string as uppercase.
+The function is applicable only to [Simple Strings].
+
+.Lower():String
+The function return the latin characters of the string as lowercase.
+The function is applicable only to [Simple Strings].
+
+.UpperGr(plain:Boolean):String
+The function return the greek characters of the string as uppercase.
+If the plain is true then the uppercase characters will not have any pitch marks.
+The function is applicable only to [Simple Strings].
+
+.LowerGr(plain:Boolean):String
+The function return the greek characters of the string as lowercase.
+If the plain is true then the lowercase characters will not have any pitch marks.
+The function is applicable only to [Simple Strings].
+
+.PrepareForJson():String
+The function returns a new string that has replaced the json invalid characters with the valid symbols .
+The function is applicable only to [Simple Strings].
+
+.XmlToList($error): Simple List 
+The function creates a native list that describes an xml formated string.
+See the section XML support.
+
+
+--Numbers
+
+-Functions
+.ToString($decimals:integer):[Simple String]
+The function convert the number to a string. The $decimals value determines how many decimals after the dot[.] will be displayed.
+
+
+-- Boolean
+
+--Functions
+.ToString():"true"|"false"
+The function returns the string representation of the boolean value.
+
+
+--Domain List [Simple List] --
+
+List.CreateList() : [Simple List]
+The function creates and returns a new simple list. 
+
+--Functions
+
+.Free()
+Free the memory of the list and set the variable as undefined. 
+This function is mandatory to be called when the list is done with its usefullness,
+because if the script is not a short lived one, the memory will remain allocated to the script. 
+
+.AtPos($named_index : String):Integer
+Returns the numeric index that the $named_index corresponds to, or -1 if the $named_index does not exists 
+
+.NamedIndex($index : Integer) : String
+Returns the named index in the $index position or an empry string if there is not a named index in this position.
+
+.Count():Integer
+Returns the items count of the list.
+
+.Exists($named_index : String):Boolean
+Returns true if the index exists or false if did not.
+
+$list.Delete($indx : Integer | String)
+Deletes and frees the item in the $indx position OR with this named index.
+
+$list.DeleteAll()
+Deletes all the items in the list and free the memory but the variable will not be released and its type will remain unchanged. 
+
+$list.Remove($indx : Integer | String)
+Removes the variable in this position or with this named index and free the variable.
+BUT the actual object that the variable stores, will not be freed, and if there is a reference of the said 
+object elsewere there will be no problem in using it.
+
+$list.RemoveAll()
+Removes and frees all the variables in the list but not the objects in the said variables,
+so if there is references of the said objects elsewere there will be no problem in using it.
+
+$list.Insert($index : Integer)
+Adds a new undefined variable in this position.
+
+.ToJson($isJsonObj:Boolean, out-> $error:String):String
+Returns a json formated string. If the list is in actuality a json object (returned from the .JsonToList() function) 
+then the first parameter MUST be set to true.
+
+.ListToXmlStr($error:String):String
+Returns an xml formated string. The list MUST follow the specific list 
+format that is valid for the xmls. See the XML support later in the text.
+
+.SetNamedIndex($index : Integer,$name:String)
+The function sets the named index in the given numeric index. 
+
+.ChangeNamedIndex($index : String ,$name : String):Boolean
+The function change the name of the element from $index to $name and return true.
+If the $index does not exists then the return value is false.
+
+
+NOTE : The functions that set and change named indexes does not check for duplicates.
+And always changes the first occurence. Is responsibility of the programmer to 
+monitor the indexes and their validity.
+
+
+
+-- Domain List [StringList] --
+
+List.CreateStringList()	:Stringlist
+The function creates and returns a new Stringlist
+
+--Functions 
+
+.Count():Integer
+The function returns how many elements are in the list.
+
+.Add($str : String)
+Adds a new string to the end of the list. 
+
+.ToSimple():String
+Returns a simple string that is the concatenation of all the string lines of the list.
+
+.ToSimpleLn($unixStyle : Boolean):String
+Returns a simple string but every line in the string list will be attached with an 
+lf character if the $unixStyle is true or with a cr lf combination if the $unixStyle is false. 
+
+.LoadFromFile($fileName : String)
+Loads the lines from a text file and store them in the stringlist. The stringlist will be cleared first.
+
+.SaveToFile($fileName : String,$unixStyle : Boolean)
+Saves the String list contents to a file. Every line of the list
+is followed by a crlf part if the $unixStyle is false or by a lf character if the $unixStyle is true. 
+
+.Clear()
+Removes all the strings from the list.
+
+.Free()
+Deallocates the memory and sets the list variable to undefined.
+
+
+-- Domain List [Fast List] --
+
+--Functions
+
+List.CreateFastList($buckets : Integer): Fast List
+
+Creates and returns a new Fast List. The $buckets will set the actual buckets in the internal hash table.
+As a rule of thumb, The more elements you want to store the more buckets you want , so the searches will be faster.
+But more buckets means more memory needed.(Not very much for a bucket though). 
+
+The following functions behave in the same way that the same functions of the Simple List behave . 
+
+.Free
+.Count
+.Exists
+.Delete
+.DeleteAll
+.Remove
+.RemoveAll
+.ToJson(out-> $error:String)
+
+-- Hydra Domain --
+
+--Functions
+
+Hydra.ScriptPath():String
+Returns the path of the main script that is loaded. Keep in mind that this information is extracted from the command line,
+if the command line is like : hydra+ c:\myscript.hydra then the function will return "c:\".
+If the command line is like : hydra+ myscript.hydra the function will return an empty string,
+except if the OS has passed the path automatically.
+
+Hydra.Path():String
+Returns the path of the Hydra+ executable. Keep in mind that this information is extracted from the command line too 
+in the same fashion with the Hydra.ScriptPath().
+
+Hydra.ScriptName():String
+The function returns the name of the main script.
+
+
+-- Domain [Bytes] --
+
+Bytes.Create($length) : Bytes
+The function creates and returns a new Bytes object with a length of $length.
+
+-- Function --
+
+.Length() : Integer
+The function returns the byte count of the object.
+
+.SetToZero()
+Sets the buffer of the object to NULL and the length to 0. All the memory of the buffer will be deallocated.
+
+.Reset($length : integer)
+Release the previous memory of the object buffer and create a new one with a length of $length.
+
+.Free
+Sets the buffer of the object to NULL, length to 0 and the variable is set to undefined.
+All the memory of the object will be deallocated.
+
+.Copy($bytes : Bytes)
+Copy the $bytes to the caller [Bytes] variable, but only if the length of the destination is equal or bigger than the source's.
+
+.CopyEx($bytes : Bytes , $dest_start : Integer , $source_start : Integer , $source_end : Integer)
+Copy the $bytes to the caller , starting from $source_start , put them in the destination starting from the $dest_start 
+and continue until the $source_end.
+
+.FromUTF8($string:String)
+Fills the bytes with the bytes of the string (the function release and realocate the Bytes).
+
+.ToUTF8(byte_len) : String 
+Returns the bytes as a utf8 string, if the byte_len is smaller than 0 then all the bytes will be represented as a UTF8 string.
+If the byte_len is greater than 0 then only these bytes will be represented as a UTF8 string.
+The function does not do any error correction , so if the byte_len cut a utf8 character then this character will be
+corrupted in the result.
+
+.FindPattern($pattern:String,$startPos:Integer):Integer
+Return the position of the first byte of the pattern in the Bytes.
+The function starts searching from the $startPos, if the pattern does not exists in the Bytes then the function returns -1
+
+.Compare($str:String,$startPos:Integer):Boolean
+Compares the bytes of the $str starting from the bytes[$startPos]. If the bytes are identical, the function returns true , else 
+returns false.
+
+.Xor($key):Bytes
+The function returns a Bytes type with the xored bytes (with the $key) of the original.
+
+
+-- Domain [File] --
+ 
+File.Open($file_name, mode : _write | _read , doCreate : boolean, $ret : String):File
+Opens a file, create and return a new file object. If the doCreate is true, then if the file does not exists it will be created.
+The $ret will be filled with the error code or it will be returned empty in success. 
+NOTE : If the file exists then it will open for append. 
+To clear a file for its contents , use prior the .open the emptyFile()(see later) function to clear the file and make it zero size 
+
+-- Functions --
+
+.Close()
+The function closes the file.
+
+.Seek($offset : Integer , from : _start | _end | _curr)
+The function moves the pointer of the file [$offset] bytes from the given position
+
+.Read($buff : Bytes) : Integer
+Fills the $buff with the contents of the file. Returns how many actual bytes where retrieved from the file.
+Returns -1 if an error occured. The maximum bytes that the read is trying to read,
+is determined by the length of the Bytes object that is passed as a parameter.
+
+.Write($buff : Bytes , $count : Integer) : Integer
+The function write $count bytes from the buff to the file. 
+If the $count is bigger than the actual length of the Bytes object, 
+then the $count will be set to the Bytes.Length(). 
+Retuns the bytes that actually was writed in the file. Returns -1 if an error occurs.  
+
+.IsOpen():Boolean
+The function returns true if the file is open or false otherwise.
+
+.Size():Integer
+Return the size of an open file or -1 if an error occurs. 
+CALL THIS AFTER THE FILE IS OPEN BEFORE PERFORM ANY OTHER ACTION,
+because it will reset the file pointer to the beginning of the file.
+
+emptyFile($filename:String)
+The function deletes all the contents of the file, and make it zero size.
+
+fileExists($file_name):Boolean
+The function returns true if the file exists , or false if the file does not exists.
+
+
+-- Domain [TCP Client] --
+ 
+-- Functions --
+
+Socket.ClientTCP($host : String,$port : Integer,$error : String):ClientTCPSocket
+The function returns a tcp socket connected to the $host in the $port.
+If an error occurs the $error will have the error, else the $error will be empty.  
+ 
+.Close()
+The function will close the connection.
+
+.SendUTF8($data : String):Integer
+Sends a utf8 encoded string to the connection. Returns 0 in success or the error code.
+
+.Send($data : Bytes, $count : Integer):Integer
+Sends the $count bytes from the $data to the connection. Returns 0 in success or the error code.
+
+.ReceiveUTF8($data : String,$error : Integer)
+Receives a utf8 string , the $error is set to 0 in success or to the error in failure.
+WARNING! Use this function only if you know for sure that the connection will send the string and then it will
+close. Else the thread will block until the connection is closed.
+
+.Receive($data : Bytes,$error : Integer):Integer
+Receives data and copy them in the $data. The $error is set to 0 in success or in an error code in failure.
+The return value is the actual bytes that was received in the buffer.
+
+.IsValid():Boolean
+Use this function to determine if the socket is valid. 
+If the socket is valid then the function returns true, else return false. 
+
+.Free() 
+The function closes the socket, deallocates the memory and sets the variable to undefined.
+
+
+
+-- Domain [TCP Server] --
+
+-- Functions --
+
+.TCPServer($port : Integer,$max_connections : Integer,$error : String):ServerTCPSocket
+
+Creates a TCP server in all the interfaces for accepting connections in the $port.
+The server will accept $max_connections before refusing a connection.
+The $error will be empty in succes or with the error in failure.  
+ 
+.Close()
+The function will shutdown the server.
+
+.Accept($error : String):TCPClientSocket
+The function will wait (blocks the thread) for a client to connect.
+If a client connects, then it will return a tcp client socket,
+that can be used for sending and receiving data from the client.
+
+.IsValid():Boolean
+Use this function to determine if the socket is valid. 
+If the socket is valid then the function returns true, else return false. 
+
+.Free() 
+The function closes the socket , deallocates the memory and sets the variable to undefined.
+
+
+
+-- Domain [SSL Client] --
+
+-- Functions --
+
+SSL.Connect($host : String,$port : Integer,$error : String):ClientSSL
+A new ssl connection will be created to the $host in the $port. The error will be empty in success,
+and with the error code in failure.
+
+The following function has the same functionality as the TCPClient socket.
+
+.Close()
+.Free()
+.SendUTF8($data : String):Integer  (returns -1 for error or the bytes that was transfered )
+.Send($data : Bytes,Count : Integer):Integer
+.ReceiveUTF8($data : String,$error : Integer)
+.Receive($data : Bytes,$error : Integer):Integer
+.IsValid():Boolean
+
+
+-- Domain [SSL Server] --
+
+-- Functions --
+
+SSL.Server($port : Integer,$max_connections : Integer,CERT_FILE : String , KEY_FILE : String,$error : String):SSLServer
+The function creates a new SSL server that will be accepting connections to all interfaces in the $port. 
+The server will accept simultaneously $max_connections. 
+The CERT_FILE and the KEY_FILE is the paths for the ssl certification files in the disk.
+The $error is set to empty in success or in the error in failure.
+
+The following functions have the same functionality with the TCP Server object.
+
+.Close()
+.Free()
+.IsValid():Boolean
+.Accept($error : String):SSLClient
+
+
+-- Domain [Database] --
+
+Hydra+ Support the connection to various databases.
+
+Native -> SQLite : The SQLite database is compiled into [Hydra+] with the amagalmation code that the SQLite provides.
+
+Via static linking (windows) or dynamic linking (Linux) -> MariaDB : The MariaDB / MySQL databases are 
+supported by linking with the mariadb-c-connector that the MariaDB provides.
+
+Via ODBC drivers : [Hydra+] supports ODBC connections and has been tested with the ODBC driver for the SQL Server.
+
+-- Database [Connection] --
+
+--Functions
+
+Database.SQLite($dbname : String,$doCreate:Boolean, out->$error:String):DatabaseConnection
+Use this method to create a new connection to an SQLite database. The $dbname is the filename of the SQLite database.
+If the $doCreate is false then the function will not try to create the database and the $error will have an appropriate description.
+If the $doCreate is true then the function will try to create a new database if the database does not exists.
+The $error will be empty in success or set with the error . The returned object is a DatabaseConnection object. 
+You can check if the connection is valid with the .IsValid() function .
+ 
+Database.MariaDB($host:String , $user:String, $pass:String, $db:String, $port:Integer, out -> $error:String):DatabaseConnection
+
+This method connects to a MariaDB/MySQL database. The $error will be empty in success or set with the error. 
+The returned object is a DatabaseConnection. You can check if the connection is valid with the .IsValid() function.
+
+Database.ODBC($conn_string: String,out-> $error:String ,blob_as_string : Boolean);
+Connect to a database via ODBC.
+The $conn_string must have the syntax of the ODBC connection string. 
+
+Example for the SQLServer : 
+windows-> "Driver={SQL Server};Server=DESKTOP-SQLSERV;Database=ADATABASE;Uid=sa;Pwd=12345678;"
+
+linux (Ubuntu) -> "Driver={/opt/microsoft/msodbcsql18/lib64/libmsodbcsql-18.3.so.2.1};Server=192.168.1.200;Database=ADATABASE;Uid=sa;Pwd=12345678;Encrypt=YES;TrustServerCertificate=YES"
+
+If the blob_as_string is true then the BLOB fields will be returned as hexadecimal formated strings and not as binary
+data.
+
+.Exec($query:String):String
+The Exec() function will send the query to the connection for execution.
+If the execution succeed then the function will return an empty string, else it will return the error.
+The Exec() function does not return any dataset from a select query and the result of a select query will be lost.
+
+.Query($query : String, out->$error:String):Dataset
+The Query function send a query to the connection and returns a Dataset object.
+The $error will be set to empty in success or with the error in failure.
+
+.Close()
+The connection will be closed.
+
+.Free()
+The the connection will be closed the memory will be freed and the variable will be set to undefined.
+
+
+-- Dataset --
+
+A dataset object is created from the .Query() function of the DatabaseConn object.
+
+--Functions 
+
+.FieldsCount():Integer
+Call this function from a valid Dataset to retrieve the number of columns that the query returned.
+
+.FieldGenType($indx : Integer):NULL|INTEGER|REAL|STRING|BLOB|DATETIME
+Call this function to determine the generic type of the field(column) in the $indx position.
+If the $indx is not in the valid range for the colums, then the NULL value is returned and a warning is emmited. 
+
+.FieldType($indx:Integer):String
+The function returns the specific type of the field. This can be different for different database connections.
+
+-Types of Fields
+
+SQLite :
+Integer,Float,Text,Blob,NULL
+
+MariaDB :
+DECIMAL,TINY,SHORT,LONG,FLOAT,DOUBLE,NULL,DATE,LONGLONG,INT24,DATE,TIME,DATETIME,YEAR,NEWDATE,
+VARCHAR,BIT, TIMESTAMP2,DATETIME2,TIME2,JSON,NEWDECIMAL,ENUM,SET,TINY_BLOB,
+MEDIUM_BLOB,LONG_BLOB,BLOB,VAR_STRING,STRING, GEOMETRY
+    
+		
+ODBC :
+SQl_VARCHAR,SQL_LONGVARCHAR,SQL_WCHAR,SQL_WVARCHAR,SQL_WLONGVARCHAR,SQL_DECIMAL,SQL_NUMERIC,SQL_SMALLINT,
+SQL_INTEGER,SQL_REAL,SQL_FLOAT,SQL_DOUBLE,SQL_BIT,SQL_TINYINT,SQL_BIGINT,SQL_BINARY,SQL_VARBINARY, SQL_LONGVARBINARY,
+SQL_TYPE_DATE,SQL_TYPE_TIME,SQL_TYPE_TIMESTAMP,SQL_INTERVAL_MONTH,SQL_INTERVAL_YEAR,
+SQL_INTERVAL_YEAR_TO_MONTH,SQL_INTERVAL_DAY,SQL_INTERVAL_HOUR,SQL_INTERVAL_MINUTE,SQL_INTERVAL_SECOND,
+SQL_INTERVAL_DAY_TO_HOUR,SQL_INTERVAL_DAY_TO_MINUTE,SQL_INTERVAL_DAY_TO_SECOND,SQL_INTERVAL_HOUR_TO_MINUTE,
+SQL_INTERVAL_HOUR_TO_SECOND,SQL_INTERVAL_MINUTE_TO_SECOND,SQL_GUID,UNKNOWN
+
+
+.FieldName($indx:Integer):String
+The function returns the field(column) name of the $indx position. 
+If the $indx is not in the valid range an empty string is returned and a warning is emmited. 
+  
+.RowsCount():Integer
+The function returns the record count of the dataset.
+
+.ToJson():String
+The function returns the dataset as a JSON formated string.
+
+.Free();
+Frees all the memory and sets the variable to undefined.
+
+
+
+-- DataRow --
+
+A datarow object can be extracted from a dataset with the indexing syntax of : $dataset[$indx].
+The above syntax will return a [DataRow] object.
+WARNING!! After the retrieval and use of the [DataRow] YOU MUST free the object or else a memory leak will be created.
+For example the syntax : echo($dataset[$indx].ID) Will create a memory leak.
+On the contrary the syntax : $row = $dataset[$indx] ; echo($row.ID);$row.Free(); will deallocate all the memory.
+
+A [DataRow] can access its fields either with the field name like $row.ID, 
+the position index like $row[$indx] or the $row["my field name"] syntax.  
+
+--Functions 
+.IsValid():Boolean
+Call this function to determine if the object is valid for use .
+
+
+WARNING!!! DO NOT free the dataset that produced a row before free the row. The row create its own memory 
+BUT is linked to the dataset that produced it. If you free the dataset and then try to acces the row Hydra+ will crash 
+with segmentation error. Yes i do not feel like creating a handler for that right now xD.
+
+
+
+--- System Functions ---
+
+GetTickCount() : Integer
+Returns the milliseconds from the system start. The value is an 64bit integer.
+
+inc($num : Number)
+Same as the [$num = $num + 1] instruction.
+
+dec($num : Numeric)
+Same as the [$num = $num - 1] instruction.
+
+echo($varg)
+Prints to the console the $var contents and adds a crlf pair in the end. 
+Some datatype are not supported as they cannot be printed.
+
+write($var)
+Prints to the console the $var contents.
+Some datatype are not supported as they cannot be printed.
+
+strLen($string) : Integer
+Returns the length of the string in characters. 
+
+integer($int)
+Returns an integer type variable. Example : $int = integer(10) ;
+  
+pointer()
+Returns a pointer type variable. Example : $point = pointer();
+
+runExe($exeName:String , $workDir:String , $parametersList:Stringlist,out-> $procId:Pointer,out->$Success:Boolean):String 
+Runs an exe and returns its output. The $procId will be filled with a pointer to the proccess info (reserved for later implementations). 
+If the function fails then the $Success will be set to false else it will be set to true. 
+
+threadInfo($threadId : String):List 
+The function returns a list with the information of the thread with the specific $threadId (the first in the internal list).
+message : A message that the async function has set.
+running : Boolean
+error   : Boolean
+exists  : Boolean -> Check this first to determine that the thread with the given ID exists.
+
+getThreadId():String
+The function returns the id of the thread. If the function is called from the main thread then returns "Main".
+
+emptyFile($filename:String)
+The function set the size of the given file to zero.
+
+fileExist($filename:String):Boolean
+The function returns true if the given file exists or false if the file does not exists.
+
+dirExist($dirname:String):Boolean
+The function returns true if the given directory exists or false if the directory does not exists.
+
+createDir($dir:String):Boolean
+The function create the directory. If the directory is created or is already created the function returns true
+else the function returns false. 
+
+zipDir($fileName : String , $dir : $String):Boolean
+The function zips the $dir and its contents and creates a file with the $fileName as name (full path).
+The function returns true on success or false in failure.
+ 
+zipFiles($fileName : String , $fileList : StringList):Boolean
+The function zips all the files in the $fileList and its contents and creates a file with the $fileName as name (full path).
+The function returns true on success or false in failure.
+
+extractZip($fileName : String , $dir : String):Boolean
+
+The function extracts a zip file with the name of $fileName into the $dir. The function returns true in success 
+or false in failure.
+
+getFiles($dirName : String , out->$fileList : StringList , $recursive : Boolean):Boolean
+The function retrieves the files in the $dirName and stores them in the $fileList. If the $recursive
+is true then the function will search all the directory tree. In success returns true else returns false.
+
+getDirs($dirName : String , out->$dirList : StringList , $recursive : Boolean):Boolean
+The function retrieves the directories in the $dirName and stores them in the $dirList. If the $recursive
+is true then the function will search all the directory tree. In success returns true else returns false.
+
+getFilesDirs($dirName : String , out->$fileList : StringList , $recursive : Boolean):Boolean
+The function retrieves the files and directories in the $dirName and stores them in the $fileList. If the $recursive
+is true then the function will search all the directory tree. In success returns true else returns false.
+
+dateToPOSIX($date : String as [YYYY-MM-DD 00:00:00]) : POSIX time
+The function returns an Integer that represents a POSIX time
+
+nowPOSIX():POSIX time
+Returns the current moment as POSIX time. This value can be stored in a variable as integer.
+For example : $var = nowPosix(); echo($var.ToString(0)) ;
+
+Now($add_time : boolean):String
+Returns the current moment as a YYYY-MM-DD 00:00:00 string. 
+If the $add_time is false then only the date component will be returned.
+
+timeToDate($time : POSIX Time,$format : String):String
+The function gets a POSIX time and returns a string based to the $format.
+The format supports the following special tokens:
+%d -> day that can be one digit
+%m -> month that can be one digit
+%D -> day as two digits
+%M -> month as two digits
+%Y -> year as four digits
+%: -> output the time component as 00:00:00
+#d -> the day as the three first letters of the days name 
+#m -> the month as the first three letters of the month name
+#D -> the full name of the day
+#M -> the full name of the month
+
+examples : "%d/%m/%y %:" , "%Y-%m-%d time -> %:"
+
+daysDiff($date1 : String , $date2 : String):Integer
+Return the difference between the two dates in days.
+
+secsDiff($date1 : String , $date2 : String):Integer
+return the difference between the two dates in seconds.
+
+addDays($date : String , $days : Integer(+/-)) : POSIX time
+Add the $days to the $date and returns the date as POSIX time. 
+If the $days is a negative number , the days will be subtract from the date.
+
+datesCompare($base_date : String , $compare_date : String) : [bigger | smaller | equal]
+The function compares the $base_date with the $compare_date and returns one of the following values
+(the values are of the internal type of Integer and can be assigned in a integer variable) 
+bigger , smaller , equal . The return value is applied in the $base_date, meaning that the bigger 
+for example means that the $base_date is the bigger of the two. 
+
+dateInfo($date : String) : List
+The function returns the date's info in the form of a list. The date MUST be in the form of YYYY-MM-DD 00:00:00
+Infos : 
+
+$list["posix time"] -> The datetime as a POSIX time
+$list["seconds"] -> The seconds component
+$list["minutes"] -> The minutes component
+$list["hours"] -> The hours component
+$list["month day"] -> The day of the month [1~31]
+$list["month"] -> The month [1~12]
+$list["year"] -> The year
+$list["week day"] -> The week day [1-7]
+$list["year day"] -> The year day [1-366]
+$list["daylight"] -> value < 0 no available info , value > 0 is in effect , 0 is not in effect
+
+asString($var : variable):String
+The function tries to convert the variable value to a string, and returns. 
+The valid types that can be convert are: Simple String , Real, Integer and Boolean.
+This function is very usefull to quick echo dataset fields when the type is unknown and there 
+is not any meaning to test for the type of the field and write more complex code. 
+
+isNull($var : variable):Boolean
+The function returns true if the variable is NULL (only if the variable is in fact returned from a data row) 
+else returns false.
+
+random($seed:Integer):Integer
+The function returns a pseudo random number based of the seed.
+
+random_id($length : Integer):String
+The function returns a string with random capital latin leters with length of $length. DO NOT call this function 
+in quick succession as it uses as a seed the (GetTickCount % 4000000000) result, 
+and if the function is called too fast the seed value will be the same and the same id will be produced.
+This is for convinience and for real applications a more complex and sofisticated function must be 
+implemented.
+
+sleep($milliseconds)
+The function pauses the execution of the calling thread for the $milliseconds duration.
+
+setCurrDir($dir : String)
+The function set as current work directory for the script the $dir.
+
+imageInfo($filename:String,out->$width:Integer,out->$height:Integer):Boolean
+The function retrieves the info from an image. 
+Returns true in success or false if it fails. The $width and $height will have the width and height of the image.
+Supported formats : png,jpg,tga,bmp
+
+convertImage($fileName:String,$asFormat:String[png,bmp,tga,jpg],$outFile:String):Boolean
+The function converts an image. Returns true in success or false if it fails. 
+Supported formats : png,jpg,tga,bmp
+
+resizeImage($fileName:String,$newWidth:Integer,$newHeight:Integer,$outFile:String):Boolean
+The function resizes an image and write it back to the disk as $outFile. Returns true in success or false if it fails.
+
+--Special functions
+
+$some_var.IsUndef() : Boolean
+Returns true if the variable is undefined.
+
+$some_var.Release()
+Sets the variable to undefined. It does not release its object memory, except if it is a [Simple String]. 
+
+undef():Variable (as undefined)
+Returns an undefined variable. Example : $unknown_var = undef();
+This is used mainly to return a value from a function that determines that the function failed 
+(like returning NULL to a C function). But it can be used anywere in the script.
+
+$some_var.Type(): Variable Type (Integer)
+The function returns the variable type.
+Types
+_Undefined,_Pointer,_Real,_Integer,_Boolean,_SimpleList,_Stringlist,_StringlistSort,_IntListSort,_RealListSort,	_FastList,_Http,_Database,_Dataset,_DataRow,_TcpClient,_TcpServer,_SSLClient,_SSLServer,_Bytes,_File,_SimpleStr,
+_SimpleStrBck,_Concat,_VarExpand,_Unicode,_CodePoint,_Object	
+
+Variable.TypeAsStr(): Variable Type (String)
+The function returns the variable type as a string.
+
+varExists($varName:String)
+The function returns true if the variable with the given name has been declared anywere 
+in the scope and false if it does not.
+
+echoHydra()
+Prints a character art hydra.
+
+
+--Special Commands
+
+nop
+
+The instruction means no operation, and can be used as a placeholder in an empty code block.
+Hydra+ does not permits empty code blocks like if(true){};
+But you can have the same functionality with the syntax :if(true){nop};
+
+fill_params
+Call this to reset the values of the variables that are coresponding to command line
+parameters to the values of the command line.
+
+time_point
+This command print the milliseconds passed from the last time that the time_point was called.
+The first time that the time_point is called, the returned milliseconds are the milliseconds 
+passed from the start of the interpreter. This is used mainly for benchmarking.
+
+show_warnings
+This directive forces the interpreter to show the warnings that are produced. 
+
+show_version
+The command prints the Hydra+ current version.
+
+
+
+
+
+--- Memory Scheme of Hydra+ Functions --
+
+A function entity in Hydra+ has a block that stores its code and the local variables. 
+The block is a non trivial entity and does need special handling of its memory as its instructions (code) 
+can be accessed as read only entities from any thread BUT a complex instruction that creates a block 
+(like a loop or an if(){}) will keep its local variables in this particular block.
+So a problem arise in the variables list. When a function is called in the script, Hydra+ finds 
+its entity and starts the execution of the code using the variables of the variable list, the appropriate for its block.
+In a single threaded enviroment this is very straight forward and with no problems. 
+But in a multithreaded enviroment (or in recursion) the variables list can be accessed from any thread as 
+the variable list is shared between all instances of the function.
+As it is apparent, Hydra+ does not implement a stack to push and pop values for the variables. 
+This problem is resolved by the special instruction [detach]. The [detach] instruction "detaches" 
+a function from the interpreter function list and creates a copy of the function in both code and variables.
+The function is executed normally in series in the current thread BUT the variable list is not persistent and after
+the execution the function instance is been deleted. The drawbacks of this technique are that more memory and cpu cycles 
+are used when a function is going to start execution. For small functions that are rapidly executed and exit, this can have a real impact 
+to the performance.
+
+Recursion
+
+The recursion of a function is not permited in Hydra+ without a detach. If a recursion is going to be executed,
+Hydra+ emmits a fatal error and stops the execution. Example of valid (and never ending) recursion : func myfunc(){detach myfunc();}
+
+Thread Safety
+
+In Hydra+ you can create new threads running functions as [async]. 
+This can lead to very strange syntax errors and weird results if the code is not thread safe. 
+Every [async] instruction, creates a new thread with a new interpreter and all the memory is isolated from the main thread 
+and the main interpreter. Even the functions that you use in the [async] function , have they own memory in the current interpreter. 
+BUT if you try to run a function of a user defined object that its instance is declared as global variable,
+then this function uses the same memory space in every thread access. 
+So this is not desirable because the same memory can be writed by multiple threads simultaneoysly.
+To avoid that, create a function in the object to interface with the threads that call the actual working functions as detached. 
+Keep in mind that ALL the functions that the object uses have to be called as detached for the object to be thread safe.
+Ofcourse you can always just run as detached the actual working function of the object without an interface.
+Something that is mandatory if the function accepts parameters.(see below).
+
+[detach]
+
+The [detach] command has two forms. 
+The simple calling : [detach myfunction()] 
+and the returning call : [detach $result < myfunc()]
+Keep in mind that the variable that will receive the returning value MUST be declared before the [detach] call.
+For example :
+
+$var0 = "" ;
+detach $var0 < myfunc(); -> valid! 
+detach $var1 < myfunc(); -> invalid!
+
+Examples : 
+
+obj myobj
+{
+   func hello()
+   {
+    $var = "hello";
+    $var = "Molly";
+    echo($var);
+   }
+
+  func interfaceHello()
+  {
+    detach hello();
+  }
+
+}
+
+func getHello($var)
+{
+ $hello = "Hello "+$var ;
+ return $hello ;
+}
+
+$res = "";
+detach $res < getHello();
+
+
+WARNING ! If the member function of an object accepts parameters then you HAVE to call this function
+from the caller as detached because the parameters must create their own memory too. For example :
+
+obj session
+{
+ 
+ $UID = "QWWERERTYYUUDFGFGDFGD";
+
+ func IsSessionValid($uid)
+ {
+   if($uid == $UID) return true ;
+   return false ;
+ }
+
+}
+
+$__session = Class.session ;
+
+
+If you call the $__session.IsSessionValid from a thread then you have to call it like :
+$res = false ;
+detach $res < $__session.IsSessionValid($uid) ;
+
+The [detach] instruction solves a lot of problems with the simultaneous access of functions, 
+BUT the programer has the responsibility to design a system that the shared resources
+are locked and unlocked by the threads, because this is something that the interpreter it self cannot 
+control.
+
+
+
+--- Hydra+ XML Limited Support ---
+
+Hydra+ XML support (limited). 
+
+To parse an xml string and convert it to a native list use the 
+
+.XmlToList($error) of the string domain. For example : 
+
+$xmlstring =`
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<env:Envelope xmlns:env="http://www.w3.org/2003/05/soap-envelope" xmlns:ns1="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:ns2="http://rgwspublic2/RgWsPublic2Service" xmlns:ns3="http://rgwspublic2/RgWsPublic2">
+   <env:Header>
+      <ns1:Security>
+         <ns1:UsernameToken>
+            <ns1:Username>XXXXXXXXXXXXXXXXXXXXXXXXXX</ns1:Username>
+            <ns1:Password>YYYYYYYYYYYYYYYYYYYYYYYYYY</ns1:Password>
+         </ns1:UsernameToken>
+      </ns1:Security>
+   </env:Header>
+   <env:Body>
+      <ns2:rgWsPublic2AfmMethod>
+         <ns2:INPUT_REC>
+            <ns3:afm_called_by/>
+            <ns3:afm_called_for>090165560</ns3:afm_called_for>
+         </ns2:INPUT_REC>
+      </ns2:rgWsPublic2AfmMethod>
+   </env:Body>
+</env:Envelope>
+`;
+
+
+$error = "" ;
+$xml = $xmlstring.XmlToList($error);
+
+The new list that is created can be accessed as : 
+
+$xml[1] -> this is the root tag of the document
+
+$xml[1].name  -> The tag name
+$xml[1].value -> The tag value if exists
+$xml[1].properties A list with the properties of the tag.
+The structure is -> $xml[1].properties[0].name , $xml[1].properties[0].value
+
+$xml[1].tags -> the children of the tag. The structure is $xml[1].tags[0].name , value , properties,tags
+You can access a tag with its name too , like : $xml[1].tags.a_tag_name.value
+
+To access the header of the document if exists you can use the $xml.header[0].properties etc.
+
+You can create an xml string from a native list IF the native list has been structured with the 
+right form with the function of the simple list domain : .ListToXmlStr($error:String):String
+
+The list must have a root element e.g $list.root = List.ListCreate() ; or $list[0] = List.ListCreate() ;
+
+the root and every other element must conform with the xml struct e.g must have the four elements ,
+name,value,properties,tags
+
+The header is not supported right now (why? I do not remember why i did not support this, i will when i find time), 
+if you want a string with a header make a concatenation in the produced string.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
