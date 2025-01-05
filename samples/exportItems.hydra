@@ -1,0 +1,86 @@
+#export sql servers pylon heitems
+
+#connect to the sql servers
+
+$error = "" ;
+
+$connStr = "Driver={SQL Server};Server=PYLONSERVER\EPSILON19;Database=SIPSAS_2024;Uid=sa;Pwd=Epsilons4;";
+$clConn = Database.ODBC($connStr,$error,true);
+
+if($clConn.IsValid() == false)
+{
+ echo("The connection to the sql server failed. Error : "+$error);
+ return ;
+}
+
+$query = `SELECT * FROM HEITEMS`;
+
+$dataset = $clConn.Query($query,$error);
+
+if($dataset.IsValid() == false)
+{
+  echo("The query execution failed with message : "+$error);
+  return ;
+}
+
+
+$list = List.CreateStringList();
+
+$indx = 0 ;
+#create the header 
+$header = "" ;
+echo("Dataset is loaded, proceed");
+loop
+{
+  if($indx==$dataset.FieldsCount()) break ;
+  $header = $header+ $dataset.FieldName($indx);
+  if($indx < $dataset.FieldsCount()-1) $header = $header +"~";
+  inc($indx);
+}
+
+echo("Header : "+$header);
+
+$list.Add($header);
+
+$indx=0;
+$line = "" ;
+loop
+{
+ if($indx == $dataset.RowsCount()) break ;
+ $row = $dataset[$indx] ;
+ $indx2 = 0 ;
+ loop
+ {
+   if($indx2 == $dataset.FieldsCount()) break ;
+   $type = $dataset.FieldGenType($indx2) ;
+  
+   if(isNull($row[$indx2])==true) if($type==NULL)$line = $line + "NULL";
+   else
+   if(($type==STRING)||($type==DATETIME)) $line = $line + $row[$indx2];
+   else
+   if($type==NULL)$line = $line + "NULL";
+   else
+   $line = $line + $row[$indx2].ToString(4);
+   
+   if($indx2 < $dataset.FieldsCount()-1) $line = $line+"~";
+   inc($indx2) ;
+ }
+ 
+ echo($indx.ToString(0));
+ $list.Add($line);
+ $line = "" ;
+ 
+ $row.Free();
+ inc($indx);
+}
+
+$dataset.Free();
+$clConn.Free();
+
+$list.SaveToFile("C:\deusex\sipsas\items.csv",false);
+
+echo("The export is finished!");
+
+
+
+
