@@ -11,7 +11,7 @@ See the relevant informations in the compile section later in the text).
 
 Hydra+ is a single executable (see later in the text about dependencies) that packs a loader and interpreter for the Hydra+ language syntax.
 
--- Why Hydra+ was created ?
+## Why Hydra+ was created ?
 
 I will admit that some times my brain make things hard for me. I have the need to control the tools that i use (thankfully with limits), and
 i truly hate the bloat. The idea about Hydra+ came to me when I had to create a very small program to manipulate and export some data in a Client machine, and i realise
@@ -21,7 +21,7 @@ to the source code i have to do it in a machine with all the tools chain present
 in bash in Linux BUT... why the script code is so ugly? It's only me that see this? Anyhow I decided to create a language that will have the capabilities that
 I use the most in my everyday work life (so life in general !).
 
--- How Hydra+ was created
+## How Hydra+ was created
 
 Hydra+ code is pure C. I dislike "smart" code, so my code is the simplest (most of the time) C code that you can find. No fancy syntax, no exotic things.
 The source code is create by me in its entirety, except the third party libraries for :
@@ -37,7 +37,7 @@ ODBC support via the native library of the compiler
 
 If you are thinking this is half the code of Hydra+ , well maybe xD.
 
--- Where Hydra+ can be used
+## Where Hydra+ can be used
 
 I will mention the uses that I have (and thus created) for Hydra+ :
 - Creating data exporting scripts from databases
@@ -47,7 +47,7 @@ I will mention the uses that I have (and thus created) for Hydra+ :
 - Creating importers for databases from raw text
 - Creating middlewares from one platform to another (ERP application to Eshop)
 
--- Hydra+ advantages
+## Hydra+ advantages
 
 - Very small executable (~3MB), no third party dependencies when compiled (except Linux, see later in the text)
 - Native support of UTF8 strings. (and the only ones supported xD) 
@@ -59,7 +59,7 @@ I will mention the uses that I have (and thus created) for Hydra+ :
 - Can obfuscate it's code with an internal key, that make the code incomprehensible to the human eye (hydra_loader.h line 61 change the key!!)
 - Handsome creator (this is a joke)
 
--- Hydra+ disadvantages
+## Hydra+ disadvantages
 
 - To support new functions and operations the source code must change and the Hydra+ must recompiled.
   I do not support new functions via libraries. I may do it in the future but it will defeat the purpose of the
@@ -79,14 +79,14 @@ I will mention the uses that I have (and thus created) for Hydra+ :
   Some of these restrictions (that you will find in the documentation) maybe seems weird and very easy to implement. They trully are. BUT some things tha I have do is for forcing me to write cleaner code! 
 - A lot of other things to consider!
 
--- Writing Hydra+ scripts
+## Writing Hydra+ scripts
 
 Please read all the documentation that you will find in this repository. It does not only have the syntax for the language but explain the intricacies
 of the internal operation and when (VERY IMPORTANT) you have to free manually the memory of your objects.
 The documentation has all the info that are needed for someone to write scripts, but I will provide gradually examples of scripts when I have time, as I
 understand that examples are always better than documentation. 
 
--- Compilation
+## Compilation
 
 To compile Hydra+ for Linux (later I will upload the windows version for Visual Studio) you have to know
 at least the basics of Linux.
