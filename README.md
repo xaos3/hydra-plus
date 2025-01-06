@@ -7,7 +7,7 @@ Below i will explain the basic operation of the Hydra+ , why i create it and how
 that this repository hosts (NOTE : The source code has precompiled some third party libraries for convinience , that limits the compile to x86-64bit systems that are Ubuntu based.
 See the relevant informations in the compile section later in the text).
 
--- What is Hydra+ ? 
+## What is Hydra+ ? 
 
 Hydra+ is a single executable (see later in the text about dependencies) that packs a loader and interpreter for the Hydra+ language syntax.
 
@@ -122,7 +122,7 @@ the name of the binary will be hydra+
 Now you can use it as :  hydra+ myscript.hydra
 
 
-If you have any question feel free to contact me. I may not respond immediately as I have to much work and very little sleep! 
+If you have any question feel free to contact me. I may not respond immediately as I have too much work and very little sleep! 
 
 
 
