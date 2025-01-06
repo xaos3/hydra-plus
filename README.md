@@ -90,7 +90,7 @@ understand that examples are always better than documentation.
 
 To compile Hydra+ for Linux (later I will upload the windows version for Visual Studio) you have to know
 at least the basics of Linux.
-The Linux.zip includes a precompiled library of the "wolfssl" and for "reproc" so that the compilation will be faster.
+The linux directory includes a precompiled library of the "wolfssl" and for "reproc" so that the compilation will be faster.
 NOTE : The precompiled libraries are compiled for Ubuntu Linux for x32-64bit platforms. If you want to change 
 target platform you have to recompile the libraries and replace them. The libraries are  in :
 
@@ -98,7 +98,7 @@ target platform you have to recompile the libraries and replace them. The librar
 and
 /includes/thirdparty/reproc (i do not remember why I precompiled this as it is a very small library xD)
 
-First download the Linux.zip and extracted it in a directory , I will assume that the directory will be named comp_hydra.
+First download the linux folder (I assume as a zip file) and extracted it in a directory , I will assume that the directory will be named comp_hydra.
 
 ***
 If you plan to use the obfuscation ability of Hydra+, then go to the /includes/hydra_loader.h in the line 61 and change the obfuscation key to something else!  
