@@ -40,7 +40,7 @@ After the succesfull execution of the loader, Hydra+ runs the interpreter and ex
 
 The loader and the interpreter are being writed from scratch and does not have any external dependencies.
 They can be compiled in any C compiler, but for the Hydra+ to support databases , SSL , Threads , Processes 
-and some other (minor) operations i use some third party libraries that may need special compilation. 
+and some other (minor) operations I use some third party libraries that may need special compilation. 
 
 Memory management : Hydra+ does not have a memory manager. The rules about the memory are the following :
 
@@ -173,14 +173,11 @@ The [nop] instruction can be used in every block and it does nothing.
 -Natural Scope
 
 A variable in Hydra+ can be visible in all the blocks that are nested in the block that the variable was declared
-(and the current block ofcourse). If a variable with the same name is declared in a nested block,
-then this variable will be the only one visible to the specific block and the nested blocks in it. 
+(and the current block of course). A variable with the same name CANNOT be declared in a children block ,
+the children block will see and modify the variable of the parent (or grandparent) block.
 
--Scope and the Functions
-
-Functions that are not [async] can access the variables in the main script block but as read only variables.
-If a value is assigned, then the interpreter does a new variable declaration and creation for the local block.
-An exception is the variables that are being declared as [Globals].(See later in this text).  
+-Global Scope
+Variables that are declared as [Globals] can be accessed by any any and all entities in the script.(See later in this text).  
 
 Manipulate the Scope
 
@@ -898,12 +895,14 @@ Replaces the $char character with the $replace_with character. Alters the caller
 .FindWord($word,$from_index)[integer]
 Searches for the $word string in the string starting from the $from_index.
 Returns the position of the first byte of the first character of the $word that was found.
+If the word does not exists the returned value is -1
 
 $str.FindWordBinary($word,$from_index)[integer]
 Searches for the $word string in the string starting from the $from_index ,
 returns the position of the first byte of the first character of the $word.
 This may be faster if we know that the string has only simple ansi characters,
 as it ommits the checks and the validity code for the utf8 characters.
+If the word does not exists then the function returns -1
 
 .Replace($word,$with_word,$from_indx,$replace_all):[integer]
 Replace the $word string with the $with_word string starting from $from_indx.
@@ -923,54 +922,61 @@ The function empty all the contents of the caller. The [Simple String] can achie
 
 .CopyIndx($from_indx,$to_indx):[simple string]
 Return a new string that its contents are the characters from $from_indx to $to_indx.
-The function is aplicable only to [Simple String].
+The function is applicable only to [Simple String].
 
 .Copy($from_indx,$chars_to_copy):[simple string]
 The function returns a new string that its contents are the characters of the caller starting from $from_indx 
-until $chars_to_copy. The function is aplicable only to [Simple String].
+until $chars_to_copy. If the end index is bigger than the string length then the string until the end is returned. 
+The function is applicable only to [Simple String].
 
 .CopyToChar($from_indx,$to_char):[simple string]
 The function returns a new string that its contents are the characters of the caller starting from $from_indx
 until the $to_char. If the $to_char does not exists, then the characters until the end of the caller will be returned.
-The function is aplicable only to [Simple String].
+The function is applicable only to [Simple String].
 
 .CopyIndxBinary($from_indx,$to_indx):[simple string]
 Return a new string that its contents are the characters from $from_indx to $to_indx.
-Use this if the string contains only ansi characters as it may be faster. The function is aplicable only to [Simple String].
+Use this if the string contains only ansi characters as it may be faster. The function is applicable only to [Simple String].
 
 .CopyBinary($from_indx,$chars_to_copy):[simple string]
 The function returns a new string that its contents are the characters of the caller starting from $from_indx
 until $chars_to_copy. Use this if the string contains only ansi characters as it may be faster.
-The function is aplicable only to [Simple String].
+The function is applicable only to [Simple String].
 
 
 $str.CopyCharBinary($from_indx,$to_char):[simple string]
 The function returns a new string that its contents are the characters of the caller starting from $from_indx 
 until the $to_char. If the $to_char does not exists, then the characters until the end of the caller will be returned.
-Use this if the string contains ansi characters as it may be faster. The function is aplicable only to [Simple String].
+Use this if the string contains ansi characters as it may be faster. The function is applicable only to [Simple String].
 
 .TrimLeft($characters)
 Trims the $characters from the left of the caller.
-The function is aplicable only to [Simple String]. The caller will be altered.
+The function is applicable only to [Simple String]. The caller will be altered.
 
 .TrimRight($characters)
 
 Trims the $characters from the right of the caller.
-The function is aplicable only to [Simple String]. The caller will be altered.
+The function is applicable only to [Simple String]. The caller will be altered.
 
 .Trim($characters)
 
 Trims the $characters from the caller.
-The function is aplicable only to [Simple String]. The caller will be altered.
+The function is applicable only to [Simple String]. The caller will be altered.
 
 .ToInteger(out-> $error:[simple string]):[Integer]
 
-The function returns the string converted to integer. The function is aplicable only to [Simple String].
+The function returns the string converted to integer. The function is applicable only to [Simple String].
+Warning! Always check the $error variable. If its empty ("") then the conversion was a success,
+else an error message will be set.
+
+.FromHexToInt(out-> $error:[simple string]:[Integer]
+The function returns the string that represents a hexadecimal , converted to integer.
+The function is applicable only to [Simple String].
 Warning! Always check the $error variable. If its empty ("") then the conversion was a success,
 else an error message will be set.
 
 $str.ToReal(out-> $error : [simple string]):[Real] 
-The function returns the string converted to a real number. The function is aplicable only to [Simple Strings].
+The function returns the string converted to a real number. The function is applicable only to [Simple Strings].
 Warning! Always check the $error variable. If its empty ("") then the conversion was a success, 
 else an error message will be set.
 
@@ -989,48 +995,61 @@ This function mitigates this problem. The function will get a string in the form
 and it will set the caller to the particular string that the format produces. For example,
 to create a pair of crln characters the format will be like : $line_end.SetFromChars("#13#10").
 If then you want to add this characters to the end of a string you can do a simple $str = $str + $line_end; 
-The function is aplicable only to [Simple Strings].
+The function is applicable only to [Simple Strings].
 
 .GetExt():[Simple String]
 
 Returns the extension of the file. The function assumes that the string that calls it is of the form 
 "somestring.someotherstring". The function returns the string right of the dot[.] character. 
-If a dot [.] character does not exists , then all the string is returned. The function is aplicable only to [Simple Strings].
+If a dot [.] character does not exists , then all the string is returned. The function is applicable only to [Simple Strings].
 
 .CharPos($char : Char,$from_indx:Integer):Integer
 Returns the position of the $char starting from the $from_indx or -1 if the character does not exist.
 The function is applicable only to [Simple String].
 The $from_index is in bytes and the returned value is in bytes too.
 The returned value is in relation with the $from_indx, so if the $from_indx is 10 and the return value is 5 then 
-the actual position is 15. The function is aplicable only to [Simple Strings].
+the actual position is 15. The function is applicable only to [Simple Strings].
 		
 .CopyUntilChar($char : Char,$from_indx:Integer):[Simple String]
-Copies the string from $from_indx until the character $char. If the $char does not exists then all the string from 
+Copy the string from $from_indx until the character $char. If the $char does not exists then all the string from 
 $from_indx until the end is copied and the $from_indx will set to -1. 
 When the function returns, the $from_indx will have the position of the next character after the $char 
 OR if the character is the last of the string , the $from_indx will
-have the position of the $char.	The function is aplicable only to [Simple Strings].
+have the position of the $char.	The function is applicable only to [Simple Strings].
+
+.ReverseCopyCh($indx : Integer , $char : Integer (as char) ):Simple String
+Copy the string from the index until the $char (pass it as an integer between 0~255) 
+but it search in reverse (from $indx to 0) .
 
 .Explode($sep:[Simple String]):StringList
 The function explodes the caller to parts based of the $sep as separator and returns a stringlist.
 The separator can be one or multiple characters of the ansi codepage. Examples of separators : [,][->],[=],[==] etc
 
+.ExplodeChar($separator : Integer (as char) ):StringList
+The function explodes the caller to parts based of the $seperator as separator and returns a string list.
+This function must be preffered for one byte char separators than [Explode] as it has superior performance.
+For example , for a string ~10ΜΒ with long lines , an .Explode(10) consumes 37 seconds 
+while the ExplodeChar(10) consumes 0.016 seconds. The difference is great and is mainly because
+[Explode] do alot of checking for the validity and conversion of the UTF8 encoding and simultaneously
+can use as separators full strings, while 
+the [ExplodeChar] does not and simple parsing the bytes of the data.   
+
 .UrlEncode($space_as_plus:Boolean):[Simple String]
 The function encodes the caller as a safe for url string. If the $space_as_plus is true then the space will be encoded
-as [+] and not as a [%20]. The function is aplicable only to [Simple Strings].
+as [+] and not as a [%20]. The function is applicable only to [Simple Strings].
 
 .UrlDecode($plus_as_space:Boolean):[Simple String]
 The function decodes the url encoded caller to the original string.
-The function is aplicable only to [Simple Strings]. If the $plus_as_space is true then the function will 
+The function is applicable only to [Simple Strings]. If the $plus_as_space is true then the function will 
 replace the [+] symbol with a space.   
 	
 .Base64Encode():String
 The function returns the caller encoded to Base64.
-The function is aplicable only to [Simple Strings].
+The function is applicable only to [Simple Strings].
 
 .Base64Decode():String
 The function decodes the caller that is encoded to Base64.
-The function is aplicable only to [Simple Strings].
+The function is applicable only to [Simple Strings].
 
 B64DBinary():Bytes
 
@@ -1120,6 +1139,13 @@ The function creates and returns a new simple list.
 Free the memory of the list and set the variable as undefined. 
 This function is mandatory to be called when the list is done with its usefullness,
 because if the script is not a short lived one, the memory will remain allocated to the script. 
+BEWARE!!! When you free a list , all the lists Objects are being freed. If you want to NOT 
+free the objects in the list, you have first to manually .Release the variables e.generally
+list[$].Release();
+.
+. 
+.
+list.Free();
 
 .AtPos($named_index : String):Integer
 Returns the numeric index that the $named_index corresponds to, or -1 if the $named_index does not exists 
@@ -1166,6 +1192,9 @@ The function sets the named index in the given numeric index.
 The function change the name of the element from $index to $name and return true.
 If the $index does not exists then the return value is false.
 
+.Implode($separator):String
+Returns a string constructed by the items of the list separated by the separator. 
+If an item is a complex type and cannot be described as string is ommited.
 
 NOTE : The functions that set and change named indexes does not check for duplicates.
 And always changes the first occurence. Is responsibility of the programmer to 
@@ -1200,6 +1229,9 @@ Loads the lines from a text file and store them in the stringlist. The stringlis
 Saves the String list contents to a file. Every line of the list
 is followed by a crlf part if the $unixStyle is false or by a lf character if the $unixStyle is true. 
 
+.Implode($separator):String
+Returns a string constructed by the strings of the list separated by the separator. 
+
 .Clear()
 Removes all the strings from the list.
 
@@ -1227,6 +1259,7 @@ The following functions behave in the same way that the same functions of the Si
 .Remove
 .RemoveAll
 .ToJson(out-> $error:String)
+.NamedIndex
 
 -- Hydra Domain --
 
@@ -1251,13 +1284,19 @@ The function returns the name of the main script.
 Bytes.Create($length) : Bytes
 The function creates and returns a new Bytes object with a length of $length.
 
--- Function --
+-- Functions --
 
 .Length() : Integer
 The function returns the byte count of the object.
 
 .SetToZero()
 Sets the buffer of the object to NULL and the length to 0. All the memory of the buffer will be deallocated.
+
+.FillWithZero()
+Sets all the bytes in the buffer with the 0 value.
+
+.FillWithByte($byte : Integer)
+Sets all the bytes in the buffer with the given byte. The $byte must be between 0 and 255. 
 
 .Reset($length : integer)
 Release the previous memory of the object buffer and create a new one with a length of $length.
@@ -1578,6 +1617,10 @@ echo($varg)
 Prints to the console the $var contents and adds a crlf pair in the end. 
 Some datatype are not supported as they cannot be printed.
 
+debug($varq)
+An alias for the echo function. Use this to easily search and remove debug messages when
+they are not usefull anymore.
+
 write($var)
 Prints to the console the $var contents.
 Some datatype are not supported as they cannot be printed.
@@ -1708,7 +1751,7 @@ This function is very usefull to quick echo dataset fields when the type is unkn
 is not any meaning to test for the type of the field and write more complex code. 
 
 isNull($var : variable):Boolean
-The function returns true if the variable is NULL (only if the variable is in fact returned from a data row) 
+The function returns true if the variable is NULL (only if the variable is in fact returned from a data row OR by a parsing of a json string ) 
 else returns false.
 
 random($seed:Integer):Integer
@@ -1738,6 +1781,12 @@ Supported formats : png,jpg,tga,bmp
 
 resizeImage($fileName:String,$newWidth:Integer,$newHeight:Integer,$outFile:String):Boolean
 The function resizes an image and write it back to the disk as $outFile. Returns true in success or false if it fails.
+
+byteFromChar($char):Integer
+Returns the numerical value of the first byte of the string.
+Beware that if you supply a UTF8 char other of the ASCII ones ,
+then the function will return the numerical value of the first byte of the 
+UTF8 character.
 
 --Special functions
 
