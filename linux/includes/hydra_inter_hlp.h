@@ -449,6 +449,13 @@ bool hdr_inter_var_is_numeric(PHDR_VAR var)
 	 return false ;
 }
 
+//bool hdr_inter_vars_are_interchangable(PHDR_VAR var1 , PHDR_VAR var2)
+//{
+	 
+
+
+//}
+
 
 
 

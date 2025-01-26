@@ -1249,7 +1249,7 @@ PHDR_VAR hdr_inter_return_fast_list_item(PHDR_VAR base_var,PHDR_VAR indx)
 		}
 	else
 	{
-		printf("The index in a [Fast List] has to be of [String] type.\n");
+		printf("The index in a [Fast List] has to be of [String] or [Numeric] type.\n");
 		return NULL ;
 	}
 
@@ -1414,13 +1414,13 @@ PHDR_VAR hdr_inter_return_data_row_field(PHDR_VAR base_var,PHDR_VAR indx)
 			else
 			   if(indx->type == hvt_bool) 
 			   {
-				 printf("The index to the list HAS to be of [Numeric] or [String] type\n");
+				 printf("The index HAS to be of [Numeric] or [String] type\n");
 				 return NULL ;
 			   }
 
 	   if((iindx < 0)||(iindx >= row->count) )
 	   {
-	    printf("The index that was supplied to the list was out of bounds. List range : 0 ~ %d\n",row->count-1) ;
+	    printf("The index that was supplied was out of bounds. List range : 0 ~ %d\n",row->count-1) ;
 	    return NULL ;
 	   }
 
@@ -1821,6 +1821,7 @@ PHDR_VAR hdr_inter_resolve_expr(PHDR_INTERPRETER inter,PHDR_EXPRESSION expr,bool
 				{
 					printf("The resolved expression does not have the expected returned type : ");
 					_DEBUG_PRINT_EXPRESSION_STR(token->expression);
+					printf(" [%s !=  %s] ",hdr_inter_return_variable_type(var->type),hdr_inter_return_variable_type(token->expression->value->type));
 					printf("\n");
 					return NULL ;
 				}
@@ -2767,6 +2768,7 @@ enum hdr_bool_result hdr_inter_resolve_comparison_exp(PHDR_INTERPRETER inter , P
 	/*
 	 the only thing that save as is that we can use the comparison operators only 
 	 with strings (only the == and !=) and numbers (all the operators)
+
 	*/
 
 	if ((var1->type != hvt_float) && (var1->type != hvt_integer) 

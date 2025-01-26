@@ -366,7 +366,7 @@ void dx_stringlist_add_string(PDX_STRINGLIST list,PDX_STRING str) ;
 
 void dx_stringlist_remove_str(PDX_STRINGLIST list ,DXLONG64 indx);
 /*#
- Removes the string in the indx position from the list
+ Removes (and frees all the memoryy of) the string in the indx position from the list
 #*/
 
 void dx_stringlist_clear(PDX_STRINGLIST list);
@@ -2415,6 +2415,7 @@ PDX_STRINGLIST dx_stringlist_load_text_ex(PDX_STRINGLIST list , PDX_STRING str ,
 	 int bytes_cnt = 0 ;
 	 while(*string != 0)
 	 {
+
        DXCHAR uchar = dx_get_utf8_char_ex(&string,&curr_char) ;
 	   /*get the bytes of the utf8 char*/
 	   int csize = dx_utf8_char_byte_count(*curr_char) ;
@@ -2428,6 +2429,7 @@ PDX_STRINGLIST dx_stringlist_load_text_ex(PDX_STRINGLIST list , PDX_STRING str ,
 			   curr_char++;
 		   }
 		   bytes_cnt = bytes_cnt+csize ;
+
 		   continue ;/*the character was inserted , proceed to the next one*/
 	   }
 	   else
@@ -2461,7 +2463,6 @@ PDX_STRINGLIST dx_stringlist_load_text_ex(PDX_STRINGLIST list , PDX_STRING str ,
 	 }
 
 	 free(buff);
-
 	 return list ;
 
 }

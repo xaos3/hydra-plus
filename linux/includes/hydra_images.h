@@ -36,12 +36,14 @@ bool hdr_imgConvertImage(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_V
      goto fail ;
    }
 
-   PDX_STRING format = hdr_inter_ret_string(params->params[1],&type_error) ; 
+   PDX_STRING oformat = hdr_inter_ret_string(params->params[1],&type_error) ; 
    if(type_error == true)
    {
 	 printf("The second parameter must be a String variable.\n");
      goto fail ;
    }
+
+   PDX_STRING format = LowerCase(oformat) ;
 
    PDX_STRING outf = hdr_inter_ret_string(params->params[2],&type_error) ; 
    if(type_error == true)
@@ -92,8 +94,8 @@ bool hdr_imgConvertImage(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_V
         stbi_image_free(img);/*release the memory*/
     }
 
-   
-    *result           = hdr_var_create(NULL, "", hvf_temporary_ref, NULL) ;
+   dx_string_free(format);
+   *result           = hdr_var_create(NULL, "", hvf_temporary_ref, NULL) ;
    (*result)->type    = hvt_bool ; 
    (*result)->integer = hdr_inter_bool_to_int(ret)      ;
 
@@ -226,7 +228,8 @@ bool hdr_imgResizeImage(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_VA
    /*get the extension of the file*/
    char *src_indx = fname->stringa ; 
    char* ext = dxCopyStrToCharReverse(&src_indx,'.',"")  ; 
-   PDX_STRING itype = dx_string_create_bU(ext) ;
+   PDX_STRING otype = dx_string_create_bU(ext) ;
+   PDX_STRING itype = LowerCase(otype);
 
     bool ret = false ;
     int width, height, channels;
@@ -246,6 +249,8 @@ bool hdr_imgResizeImage(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_VA
         {
           printf("MALLOC() failed. See the following error to pinpoint where ->\n");
           stbi_image_free(img);/*release the memory*/
+          dx_string_free(itype);
+          dx_string_free(otype);
           goto fail ;
         }
 
@@ -269,7 +274,7 @@ bool hdr_imgResizeImage(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_VA
               if(stbi_write_tga(outf->stringa,nwidth,nheight,channels,img_buffer) != 0) ret = true ;
             }
             else
-            if(hdr_inter_fast_str(itype, "jpg", 3) == true)
+            if((hdr_inter_fast_str(itype, "jpg", 3) == true)||(hdr_inter_fast_str(itype, "jpeg", 4) == true))
             {
               /*we will save the jpg always in 100% quality*/ 
               if(stbi_write_jpg(outf->stringa,nwidth,nheight,channels,img_buffer,100) != 0 ) ret = true;
@@ -283,12 +288,12 @@ bool hdr_imgResizeImage(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_VA
         }
 
 
-        dx_string_free(itype);
         free(img_buffer);
         stbi_image_free(img);/*release the memory*/
     }
 
-   
+   dx_string_free(itype);
+   dx_string_free(otype);
    *result            = hdr_var_create(NULL, "", hvf_temporary_ref, NULL) ;
    (*result)->type    = hvt_bool ; 
    (*result)->integer = hdr_inter_bool_to_int(ret)      ;

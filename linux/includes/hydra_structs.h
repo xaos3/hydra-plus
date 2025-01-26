@@ -425,9 +425,9 @@ PHDR_VAR hdr_var_free(PHDR_VAR var)
 	if (var == NULL) return NULL;
 	dx_string_free(var->name);
 
-	if(var->is_ref == false)
-	{
-		/*a small memory managment to avoid access violation when try to free alreade freed memory*/\
+	//if(var->is_ref == false)
+	//{
+		/*a small memory managment to avoid access violation when try to free already freed memory*/\
 		if(_POINTERS != NULL)
 		{
 			if((var->obj != NULL)&&(var->type !=hvt_simple_string)&&(var->type !=hvt_simple_string_bcktck)&&(var->type !=hvt_unicode_string))
@@ -493,7 +493,7 @@ PHDR_VAR hdr_var_free(PHDR_VAR var)
 		}
 	  
 
-	}
+	//}
 	end:
 	free(var);
 	return NULL;
@@ -1986,7 +1986,7 @@ char* hdr_error_code_to_str(int error_code)
 		break;
 	case HDR_ERROR_LOADER_SYNTAX_ERROR:				return "Syntax error. Malformed instruction.The loader will print a detailed error description";
 		break;
-	case HDR_ERROR_LOADER_INTERNAL_ERROR:			return "Internal error. A bug or a similar problem produce this error !";
+	case HDR_ERROR_LOADER_INTERNAL_ERROR:			return "Internal error. A bug or a similar problem produced this error !";
 		break;
 	case 4000000000:								return "Internal error. A function , object or variable was not inserted in the list as it should";
 		break;

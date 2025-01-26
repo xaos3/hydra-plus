@@ -188,7 +188,7 @@ bool hdr_domSimpleListSetNamedIndex(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN t
 bool hdr_domSimpleListChangeNamedIndex(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHDR_VAR for_var, PHDR_VAR *result)
 {
 
-   /*The function (re)sets the named index of the position index*/
+   /*The function change the named index*/
    PHDR_SYS_FUNC_PARAMS params = hdr_sys_func_init_params(inter,token->parameters,2) ;
    if(params == NULL)
    {
@@ -601,7 +601,7 @@ bool hdr_domSimpleListReleaseMem(PHDR_VAR for_var)
 
 bool hdr_domSimpleListInsert(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHDR_VAR for_var)
 {
-   /*returns the position index of the named index or -1 if the named index does not exists*/
+   /*insert a new undefined variable*/
    PHDR_SYS_FUNC_PARAMS params = hdr_sys_func_init_params(inter,token->parameters,1) ;
    if(params == NULL)
    {
@@ -862,21 +862,20 @@ bool hdr_domStringListLoadFromFile(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN to
    /*empty the list*/
 
    dx_stringlist_clear(list) ;
-   
+
    DXLONG64 indx = 0 ;
-   char * tochar = "\n" ;
-   while(indx < text->len)
+   char  tochar = '\n' ;
+   while(indx < text->bcount)
    {
      /*get the line*/
-     char * line = utf8CopyToCh(text->stringa,&indx,tochar) ;
+     char * line = CopyStrToChar(text->stringa,&indx,tochar) ;
 	 if(line == NULL) break ;
 	 /*check if the line is windows ending (crlf)*/
 	 if(line[strlen(line)-1] == '\r') line[strlen(line)-1] = 0 ; /*terminate the line effectivelly trim the \r*/
 	 PDX_STRING str = dx_string_create_bU(line) ;
 	 dx_stringlist_add_string(list,str) ;
-
-	 indx++ ; /*go after the character*/
 	 if(indx == -1) break ;
+	 indx++ ; /*go after the character*/
    }
 
 
@@ -957,7 +956,7 @@ bool hdr_domStringListSaveToFile(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN toke
 		{
 		  terml[0] = 13 ;
 		  terml[1] = 10 ;
-		  fwrite(terml,1,1,f) ;
+		  fwrite(terml,1,2,f) ;
 		}
 
     node = node->right ;
@@ -1050,6 +1049,81 @@ bool hdr_domStringListReleaseMem(PHDR_VAR for_var)
 
    return false ;
 }
+
+/*---------------------------------------------------------------*/
+
+PDX_STRING hdrImplodeStringList(PDX_LIST list,PDX_STRING sep) 
+{  
+	/*
+	 The function gets a simple list and try to create a string that has the items of the list separated by
+	 the sep. If an item is not numeric or simple string then the item will be ommited .
+	*/
+	PDX_STRINGLIST strl = dx_stringlist_create();
+	PDXL_NODE      node = list->start ;
+
+	while(node != NULL)
+	{
+		PDX_STRING str = node->object->key ;
+		PDX_STRING value = dx_string_clone(str) ;
+		PDX_STRING nsep  = dx_string_clone(sep) ;
+
+		dx_stringlist_add_string(strl,value) ;
+		dx_stringlist_add_string(strl,nsep)   ;
+
+		node = node->right ;
+	}
+
+	/*ok , now remove the last separator*/
+	dx_stringlist_remove_str(strl,strl->count-1) ;
+	/*construct the string*/
+	PDX_STRING outs = dx_stringlist_raw_text(strl) ;
+	dx_stringlist_free(strl);/*clean up*/
+
+	return outs ;
+}
+
+bool hdr_domStringListImplode(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHDR_VAR for_var, PHDR_VAR *result)
+{
+	/*
+	 the function returns a string with the lists items separated by the seperator.
+	 If an item is not a string or a number ,then is ommited.
+	*/
+   PHDR_SYS_FUNC_PARAMS params = hdr_sys_func_init_params(inter,token->parameters,1) ;
+   if(params == NULL)
+   {
+	 printf("The system function StringList.Implode($sep:String):String failed.\n");
+     return true ;
+   }
+
+   bool type_error ;
+   PDX_STRING sep = hdr_inter_ret_string(params->params[0],&type_error) ; 
+   if(type_error == true)
+   {
+	 printf("The  parameter must be of a String type.\n");
+     goto fail ;
+   }
+
+   PDX_LIST list  = (PDX_LIST)for_var->obj ;
+
+
+	PDX_STRING str = hdrImplodeStringList(list,sep);
+	if(str == NULL) str = dx_string_createU(NULL,"")    ;
+
+	*result = hdr_var_create(str,"",hvf_temporary_ref,NULL) ;
+	(*result)->type = hvt_simple_string ;   
+
+
+    success:
+    hdr_sys_func_free_params(params) ;
+    return false ;
+
+    fail : 
+    printf("The system function StringList.Implode($sep:String):String failed.\n");
+    hdr_sys_func_free_params(params) ;
+    return true ;
+}
+
+/*---------------------------------------------------------------------*/
 
 
 /********************** FAST LIST ********************************/
@@ -1380,6 +1454,51 @@ bool hdr_domFastListRemoveAll(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, 
 }
 
 
+bool hdr_domFastListNamedIndex(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHDR_VAR for_var, PHDR_VAR *result)
+{
+   /*return the name of the index of the given position*/
+   PHDR_SYS_FUNC_PARAMS params = hdr_sys_func_init_params(inter,token->parameters,1) ;
+   if(params == NULL)
+   {
+    printf("The system function List.Named Index failed.\n");
+    return true ;
+   }
+   
+   PDX_HASH_TABLE list  = (PDX_HASH_TABLE)for_var->obj ;
+
+   /*find the object in the position*/
+   bool type_error = false ;
+   DXLONG64 nindx = hdr_inter_ret_integer(params->params[0],&type_error) ; 
+   if(type_error == true)
+   {
+		printf("The parameter must be of a Numeric type\n");
+		goto fail ;
+   }
+
+    /* return the element that we found when searches the buckets in serial*/
+	PDXL_OBJECT obj = dx_HashItemByIndex(list , nindx);
+	if (obj == NULL)
+	{
+		printf("The numeric index that was supplied for the [Fast List] was not in the valid range : %d:%d supplied : %d.\n",0,list->count,nindx);
+		goto fail ;
+	}
+
+   *result = hdr_var_create(NULL, "", hvf_temporary_ref, NULL) ;
+   (*result)->type    = hvt_simple_string ; 
+   PDX_STRING ns = dx_string_createU(NULL,obj->key->stringa);
+   hdr_var_set_obj(*result,ns) ;
+
+   success:
+    hdr_sys_func_free_params(params) ;
+    return false ;
+
+   fail : 
+    printf("The system function List.NamedIndex failed.\n");
+    hdr_sys_func_free_params(params) ;
+    return true ;
+}
+
+
 /********************** JSON SUPPORT *********************************/
 
 bool hdr_domJsonListToString(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHDR_VAR for_var, PHDR_VAR *result)
@@ -1519,7 +1638,107 @@ bool hdr_domListToXmlStr(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_V
 }
 
 
+/*---------------------------------------------------------------*/
 
+PDX_STRING hdrImplodeList(PDX_LIST list,PDX_STRING sep) 
+{  
+	/*
+	 The function gets a simple list and try to create a string that has the items of the list separated by
+	 the sep. If an item is not numeric or simple string then the item will be ommited .
+	*/
+	PDX_STRINGLIST strl = dx_stringlist_create();
+	PDXL_NODE      node = list->start ;
+
+	while(node != NULL)
+	{
+	    PHDR_VAR var     = node->object->obj ;
+		PDX_STRING value = NULL         ;
+		if(var->type == hvt_bool)
+		{
+		  if(var->integer == 0) value = dx_string_createU(NULL,"false");
+		  else
+			  value = dx_string_createU(NULL,"true");
+		}
+		else 
+		if((var->type == hvt_codepoint)||(var->type == hvt_integer)||(var->type == hvt_pointer))
+		{
+		  value = dx_IntToStr(var->integer);
+		}
+		else
+        if(var->type == hvt_float)
+		{
+		  value = dx_FloatToStr(var->real,6) ;
+		}
+		else
+        if(var->type == hvt_null)
+		{
+		  value = dx_string_createU(NULL,"null") ;
+		}
+		else
+        if((var->type == hvt_simple_string)||(var->type == hvt_simple_string_bcktck))
+		{
+		  PDX_STRING str = (PDX_STRING)var->obj ;
+		  value = dx_string_clone(str) ;
+		}
+
+		if(value != NULL) 
+		{
+			PDX_STRING nsep = dx_string_clone(sep) ;
+			dx_stringlist_add_string(strl,value) ;
+			dx_stringlist_add_string(strl,nsep) ;
+		}
+		node = node->right ;
+
+	}
+
+	/*ok , now remove the last separator*/
+	dx_stringlist_remove_str(strl,strl->count-1) ;
+	/*construct the string*/
+	PDX_STRING outs = dx_stringlist_raw_text(strl) ;
+	dx_stringlist_free(strl);/*clean up*/
+
+	return outs ;
+}
+
+bool hdr_domListImplode(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHDR_VAR for_var, PHDR_VAR *result)
+{
+	/*
+	 the function returns a string with the lists items separated by the seperator.
+	 If an item is not a string or a number ,then is ommited.
+	*/
+   PHDR_SYS_FUNC_PARAMS params = hdr_sys_func_init_params(inter,token->parameters,1) ;
+   if(params == NULL)
+   {
+	 printf("The system function List.Implode($sep:String):String failed.\n");
+     return true ;
+   }
+
+   bool type_error ;
+   PDX_STRING sep = hdr_inter_ret_string(params->params[0],&type_error) ; 
+   if(type_error == true)
+   {
+	 printf("The  parameter must be of a String type.\n");
+     goto fail ;
+   }
+
+    PDX_LIST list  = (PDX_LIST)for_var->obj ;
+    PDX_STRING str = hdrImplodeList(list,sep);
+	if(str == NULL) str = dx_string_createU(NULL,"")    ;
+
+	*result = hdr_var_create(str,"",hvf_temporary_ref,NULL) ;
+	(*result)->type = hvt_simple_string						;
+
+    success:
+    hdr_sys_func_free_params(params) ;
+    return false ;
+
+    fail : 
+    printf("The system function List.Implode($sep:String):String failed.\n");
+    hdr_sys_func_free_params(params) ;
+    return true ;
+}
+
+/*---------------------------------------------------------------------*/
 
 
 

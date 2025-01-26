@@ -2113,8 +2113,10 @@ DXUTF8CHAR dx_get_utf8_char_ex(char **char_indx,char **prev_char)
         return utf8char ;
 
       }
-
-   return 0 ;
+   /*something  very strange is happening. lets check the byte*/
+   if(*char_indx == 0) return 0 ;
+   (*char_indx)++ ; /*encoding error, next byte*/
+   return (DXUTF8CHAR)*char_indx ; 
 }
 
 DXUTF8CHAR dx_get_utf8_char_ex2(char **char_indx,char **prev_char,int *char_len)
@@ -2239,8 +2241,17 @@ DXUTF8CHAR dx_get_utf8_char_ex2(char **char_indx,char **prev_char,int *char_len)
 
       }
 
-   return 0 ;
+    /*something  very strange is happening. lets check the byte*/
+   if(*char_indx == 0) 
+   {
+	   *char_len = 1 ;
+	   return 0 ;
+   }
+   (*char_indx)++ ; /*encoding error, next byte*/
+   *char_len = 1 ;
+   return (DXUTF8CHAR)*char_indx ; 
 }
+
 
 
 enum dx_compare_res dx_string_native_compare(PDX_STRING str1, PDX_STRING str2)

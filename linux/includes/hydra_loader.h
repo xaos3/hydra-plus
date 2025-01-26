@@ -3139,7 +3139,7 @@ int hdr_loader_create_code(PHDR_LOADER loader)
 
     int status = hdr_loader_create_code_from_script(loader,loader->main_script,true) ;
    
-    /*free the scripts, we do not need them anymore so we will fre ethe memory*/
+    /*free the scripts, we do not need them anymore so we will free the memory*/
 
     node = loader->scripts->start;
     while (node != NULL)

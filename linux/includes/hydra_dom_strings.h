@@ -1994,6 +1994,55 @@ bool hdr_domStringCopyChar(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHD
 
 }
 
+bool hdr_domStringRevCpyBt(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHDR_VAR for_var,PHDR_VAR *result)
+{
+    /*
+	  Copy the string from the indx until the ascii character searching in reverse. If the character does not exists then
+	  the function returns all the string
+	*/
+
+   PHDR_SYS_FUNC_PARAMS params = hdr_sys_func_init_params(inter,token->parameters,2) ;
+   if(params == NULL)
+   {
+	 printf("The system function String.ReverseCopyCh($indx : Integer , $char : Integer (as char) ):Simple String failed.\n");
+     return true ;
+   }
+
+    bool type_error = false ;
+    DXLONG64 indx  = hdr_inter_ret_integer(params->params[0],&type_error) ;
+	if(type_error == true)
+    {
+	  printf("The first parameter must be an integer.\n");
+      goto fail ;
+    }
+
+    type_error = false ;
+    DXLONG64 chr  = hdr_inter_ret_integer(params->params[1],&type_error) ;
+	if(type_error == true)
+    {
+	  printf("The second parameter must be an integer tha represents an ASCII char (0~255).\n");
+      goto fail ;
+    }
+   
+	PDX_STRING src  = (PDX_STRING)for_var->obj ;
+	char *str_indx  = src->stringa ;
+	char *nbuff = dxCopyStrToCharReverse(&str_indx, (char)chr,"") ;
+	PDX_STRING nstr = dx_string_create_bU(nbuff) ;
+	*result = hdr_var_create(NULL,"",hvf_temporary_ref,NULL) ;
+	(*result)->type    = hvt_simple_string                   ;
+	hdr_var_set_obj(*result,nstr)      ;
+
+    success:
+    hdr_sys_func_free_params(params) ;
+    return false ;
+
+    fail : 
+    printf("The system function String.ReverseCopyCh($indx : Integer, $char : Integer (as char) ):Simple String failed.\n");
+    hdr_sys_func_free_params(params) ;
+    return true ;
+}
+
+
 bool hdr_domStringCharPos(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_VAR for_var,PHDR_VAR *result)
 {
 	/*
@@ -2165,6 +2214,44 @@ bool hdr_domStringExplode(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_
     return true ;
 }
 
+
+bool hdr_domStringExplodeChar(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_VAR for_var,PHDR_VAR *result)
+{
+	/*
+	  The function "explodes" a string and store it in a list.
+	  The function needs a separator to use that can be a single byte
+	*/
+
+   PHDR_SYS_FUNC_PARAMS params = hdr_sys_func_init_params(inter,token->parameters,1) ;
+   if(params == NULL)
+   {
+	 printf("The system function String.ExplodeChar($separator : Integer (as char) ):StringList failed.\n");
+     return true ;
+   }
+
+    bool type_error = false ;
+    DXLONG64 chr  = hdr_inter_ret_integer(params->params[0],&type_error) ;
+	if(type_error == true)
+    {
+	  printf("The first parameter must be an integer.\n");
+      goto fail ;
+    }
+   
+	*result = hdr_var_create(NULL,"",hvf_temporary_ref,NULL) ;
+	(*result)->type    = hvt_string_list ;
+	hdr_var_set_obj(*result,dx_stringlist_create()) ;
+	
+	ExplodeChar((PDX_STRINGLIST)(*result)->obj,(PDX_STRING)for_var->obj,(char)chr);
+
+    success:
+    hdr_sys_func_free_params(params) ;
+    return false ;
+
+    fail : 
+    printf("The system function String.ExplodeEx($separator : Integer (as char)):StringList failed.\n");
+    hdr_sys_func_free_params(params) ;
+    return true ;
+}
 
 
 
@@ -2437,8 +2524,14 @@ bool hdr_domStringInt(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHDR_VAR
 		case hvt_simple_string :
 		case hvt_simple_string_bcktck:
 		{	
+			DXLONG64 intval = 0 ;
+
 			bool error ;
-			DXLONG64 intval = dx_StringToInt((PDX_STRING)for_var->obj,&error) ;
+			*result = hdr_var_create(NULL, "", hvf_temporary, NULL);
+			(*result)->type = hvt_integer;
+			(*result)->integer = intval;
+
+			intval = dx_StringToInt((PDX_STRING)for_var->obj,&error) ;
 			if(error == true) 
 			{
 				strerror = dx_string_createU(strerror,"The conversion of the string into integer failed.");
@@ -2499,9 +2592,9 @@ bool hdr_domStringReal(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHDR_VA
 		case hvt_simple_string :
 		case hvt_simple_string_bcktck:
 		{	
-			bool error ;
-			double dval = dx_StringToReal((PDX_STRING)for_var->obj,&error) ;
-			if(error == true) 
+			bool terror ;
+			double dval = dx_StringToReal((PDX_STRING)for_var->obj,&terror) ;
+			if(terror == true) 
 			{
 				error = dx_string_createU(NULL,"The conversion of the string into real failed.");
 				hdr_sys_func_free_params(params) ;
@@ -2526,6 +2619,68 @@ bool hdr_domStringReal(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHDR_VA
 		case hvt_complex_string_resolve:
 		{
 			printf("The 'var_expand' string does not support the conversion to real. \n");
+			hdr_sys_func_free_params(params) ;
+			return true ;
+		}break;
+	
+	}
+
+	hdr_sys_func_free_params(params) ;
+	return false ;
+}
+
+bool hdr_domStringHexInt(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHDR_VAR for_var,PHDR_VAR *result)
+{
+   PHDR_SYS_FUNC_PARAMS params = hdr_sys_func_init_params(inter,token->parameters,1) ;
+   if(params == NULL)
+   {
+    printf("The system function String.FromHexToInt($error : [Simple String]):Integer failed.\n");
+    return true ;
+   }
+   
+   bool type_error = false ;
+   PDX_STRING error = hdr_inter_ret_string(params->params[0],&type_error) ; 
+   if(type_error == true)
+   {
+	 printf("The parameter must be a string.\n");
+     hdr_sys_func_free_params(params) ;
+	 return true ;
+   }
+
+    error = dx_string_createU(error,"") ;
+
+	switch(for_var->type)
+	{
+		case hvt_simple_string :
+		case hvt_simple_string_bcktck:
+		{	
+			PDX_STRING str = (PDX_STRING)for_var->obj ;
+			DXLONG64 dval = dxHexToDec(str->stringa) ;
+			if(dval == -1) 
+			{
+				error = dx_string_createU(NULL,"The conversion of the hexadecimal string into an Integer failed.");
+				hdr_sys_func_free_params(params) ;
+				return false ;
+			}
+			*result = hdr_var_create(NULL, "", hvf_temporary, NULL);
+			(*result)->type = hvt_integer;
+			(*result)->integer = dval;
+		}break;
+		case hvt_unicode_string:
+		{
+			printf("The 'unicode' string does not support the conversion from hexadecimal to integer. \n");
+			hdr_sys_func_free_params(params) ;
+			return true ;
+		}break ;
+		case hvt_complex_string:
+		{
+			printf("The 'concat' string does not support the conversion from hexadecimal to integer. \n");
+			hdr_sys_func_free_params(params) ;
+			return true ;
+		}break;
+		case hvt_complex_string_resolve:
+		{
+			printf("The 'var_expand' string does not support the conversion from hexadecimal to integer. \n");
 			hdr_sys_func_free_params(params) ;
 			return true ;
 		}break;

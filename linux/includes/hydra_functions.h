@@ -109,11 +109,16 @@ enum hdr_user_func_result hdr_run_user_function(PHDR_INTERPRETER inter,PHDR_COMP
 	PHDR_CUSTOM_FUNCTIONS_LIST lst = inter->funcs ;
 	if(inter->curr_obj != NULL) lst = inter->curr_obj->functions ;
 
+	/*find the function in the object functions*/
 	PHDR_CUSTOM_FUNCTION func = hdr_custom_functions_list_find_gen( lst , token->ID) ;
 	if(func == NULL)
 	{
+		/*the function is not one of the objects class functions. Change the list and search again*/
 		if(inter->curr_obj != NULL)
-		if(lst == inter->curr_obj->functions) func = hdr_custom_functions_list_find_gen( lst , token->ID) ;
+		{
+          // 2025-19-01 I did a bug fix , the inter->funcs in the following instruction was lst.  
+		  if(lst == inter->curr_obj->functions) func = hdr_custom_functions_list_find_gen( inter->funcs , token->ID) ;
+		}
 	}
 
 	if(func == NULL) return hdr_user_func_not_found ;
@@ -312,7 +317,7 @@ enum hdr_user_func_result hdr_run_user_function(PHDR_INTERPRETER inter,PHDR_COMP
 		PDX_STRING  pname    = node->object->key ;
 		PDXL_OBJECT ppointer = dx_HashReturnItem(func->code->variables->list,pname,true); 
 		/*
-		 We will chech the ppointer for NULL value. This in normal conditions is not possible (to be null). BUT if the Hydra+ proccess
+		 We will check the pointer for NULL value. This in normal conditions is not possible (to be null). BUT if the Hydra+ proccess
 		 terminates while its threads are running then this phenomenon may occur
 		*/
 		if(ppointer!=NULL) ppointer->obj = NULL ; /*set this to NULL because it was a absolute reference to the parameter variable*/
@@ -469,7 +474,7 @@ PHDR_VAR hdr_inter_resolve_extract_var_from_expr(PHDR_INTERPRETER inter ,PHDR_EX
 			/*return the actual variable*/
 			rvar = hdr_inter_retrieve_var_from_block(inter, token->ID);
 			if (rvar == NULL) return NULL;
-			/*check if the variable is a literal thta has been passed from other functions down to this function*/
+			/*check if the variable is a literal that has been passed from other functions down to this function*/
 			if (rvar->var_ref == hvf_temporary_ref_user_func)
 			{
 			  
@@ -846,6 +851,18 @@ bool hdrEcho(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token)
 		printf("\n") ;
 	}
 	else
+	if(var->type == hvt_bytes)
+	{
+		/*echo as bytes*/
+		PHDR_BYTES bytes = (PHDR_BYTES)var->obj ;
+		for(DXLONG64 i = 0 ; i < bytes->length;i++)
+		{
+			printf("%c",bytes->bytes[i]);
+		}
+
+		printf("\n") ;
+	}
+	else
 	{
 	 printf("Echo does not support the data type [%s]\n",hdr_inter_return_variable_type(var->type));
 	 goto fail ;
@@ -1109,6 +1126,43 @@ PHDR_SYS_FUNC_PARAMS params = hdr_sys_func_init_params(inter,token->parameters,1
     return true ;
 }
 
+bool hdrByteFromChar(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHDR_VAR *result)
+{
+   /*
+     The function will return the integer value of the first byte of the given string
+   */
+   PHDR_SYS_FUNC_PARAMS params = hdr_sys_func_init_params(inter,token->parameters,1) ;
+   if(params == NULL)
+   {
+    printf("The system function byteFromChar($char : String):Integer failed.\n");
+    return true ;
+   }
+
+   bool type_error = false ;
+   PDX_STRING chr = hdr_inter_ret_string(params->params[0],&type_error) ; 
+   if(type_error == true)
+   {
+	 printf("The first parameter must be a String.\n");
+     goto fail ;
+   }
+   DXLONG64 bt = 0 ;
+   if(chr->len > 0)
+	   bt = (DXLONG64)chr->stringa[0] ;
+
+   *result = hdr_var_create(NULL, "", hvf_temporary_ref, NULL) ;
+   (*result)->integer = bt ;
+   (*result)->type    = hvt_integer ; 
+		
+
+    success:
+    hdr_sys_func_free_params(params) ;
+    return false ;
+
+    fail : 
+    printf("The system function loadFromFile($filename:String, out-> $error ) failed.\n");
+    hdr_sys_func_free_params(params) ;
+    return true ;
+}
 
 
 bool hdrSetAsInt(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHDR_VAR *result)
@@ -1139,6 +1193,38 @@ bool hdrSetAsInt(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHDR_VAR *res
 
    fail : 
     printf("The system function integer($int : Integer) failed.\n");
+    hdr_sys_func_free_params(params) ;
+    return true ;
+}
+
+bool hdrCharToInt(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHDR_VAR *result)
+{
+   PHDR_SYS_FUNC_PARAMS params = hdr_sys_func_init_params(inter,token->parameters,1) ;
+   if(params == NULL)
+   {
+    printf("The system function charToInt($byte):Integer failed.\n");
+    return true ;
+   }
+   
+   bool type_error = false ;
+   DXLONG64 val = hdr_inter_ret_integer(params->params[0],&type_error) ; 
+   if(type_error == true)
+   {
+	 printf("The parameter must be an numeric value in the range of [0~255].\n");
+     goto fail ;
+   }
+
+
+   *result = hdr_var_create(NULL, "", hvf_temporary_ref, NULL) ;
+   (*result)->type    = hvt_integer  ; 
+   (*result)->integer = val			 ;
+
+   success:
+    hdr_sys_func_free_params(params) ;
+    return false ;
+
+   fail : 
+    printf("The system function CharToInt($byte) failed.\n");
     hdr_sys_func_free_params(params) ;
     return true ;
 }
@@ -1597,15 +1683,18 @@ bool hdr_inter_handle_function(PHDR_INTERPRETER inter ,PHDR_COMPLEX_TOKEN token,
 			if (hdr_inter_fast_str(token->ID, "inc", 3) == true) return hdrInc(inter, token);
 			if (hdr_inter_fast_str(token->ID, "dec", 3) == true) return hdrDec(inter, token);
 			if (hdr_inter_fast_str(token->ID, "echo", 4) == true) return hdrEcho(inter, token);
+			if (hdr_inter_fast_str(token->ID, "debug", 5) == true) return hdrEcho(inter, token);//just for easy find and delete after
 			if (hdr_inter_fast_str(token->ID, "echoHydra", 9) == true) return hdrEchoHydra(inter, token);
 			if (hdr_inter_fast_str(token->ID, "write", 5) == true) return hdrWrite(inter, token);
 			if (hdr_inter_fast_str(token->ID, "strLen", 6) == true) return hdrStrLen(inter, token,result);
 			if (hdr_inter_fast_str(token->ID, "integer", 7) == true) return hdrSetAsInt(inter, token,result);
+			if (hdr_inter_fast_str(token->ID, "charToInt", 9) == true) return hdrCharToInt(inter, token,result);//obsolete i will not documented this
 			if (hdr_inter_fast_str(token->ID, "pointer", 7) == true) return hdrSetAsPointer(inter, token,result);
 			if (hdr_inter_fast_str(token->ID, "runExe", 6) == true) return hdrRunExe(inter, token,result);
 			if (hdr_inter_fast_str(token->ID, "threadInfo", 10) == true) return hdrThreadInfo(inter, token,result);
 			if (hdr_inter_fast_str(token->ID, "getThreadId", 11) == true) return hdrGetThreadId(inter, token,result);
 			if (hdr_inter_fast_str(token->ID, "isNull", 6) == true) return hdrIsNull(inter, token,result);
+			if (hdr_inter_fast_str(token->ID, "byteFromChar", 12) == true) return hdrByteFromChar(inter, token,result);
 			
 			/*date time functions*/
 			
@@ -1756,6 +1845,7 @@ bool hdr_inter_handle_function(PHDR_INTERPRETER inter ,PHDR_COMPLEX_TOKEN token,
 			if(hdr_inter_fast_str(token->ID, "Trim", 4) == true)				return hdr_domStringTrim(inter,token, for_var);
 			if(hdr_inter_fast_str(token->ID, "ToInteger", 9) == true)			return hdr_domStringInt(inter,token, for_var,result);
 			if(hdr_inter_fast_str(token->ID, "ToReal", 6) == true)				return hdr_domStringReal(inter,token, for_var,result);
+			if(hdr_inter_fast_str(token->ID, "FromHexToInt", 12) == true)		return hdr_domStringHexInt(inter,token, for_var,result);
 			if(hdr_inter_fast_str(token->ID, "AddFromFile", 11) == true)		return hdr_domStringAddFromFile(inter,token, for_var);
 			if(hdr_inter_fast_str(token->ID, "SaveToFile", 10) == true)         return hdr_domStringSaveToFile(inter,token,for_var)		  ;
 			/*if the function was not found maybe is for some types of string*/
@@ -1775,9 +1865,11 @@ bool hdr_inter_handle_function(PHDR_INTERPRETER inter ,PHDR_COMPLEX_TOKEN token,
 				if((for_var->type == hvt_simple_string)||(for_var->type == hvt_simple_string_bcktck))
 				{
 				  if(hdr_inter_fast_str(token->ID, "SetFromChars", 12) == true)	 return hdr_domStringSetFromChars(inter,token, for_var);
+				  if(hdr_inter_fast_str(token->ID, "ReverseCopyCh", 13) == true) return hdr_domStringRevCpyBt(inter,token, for_var,result);
 				  if(hdr_inter_fast_str(token->ID, "CharPos", 7) == true)		 return hdr_domStringCharPos(inter,token, for_var,result);
 				  if(hdr_inter_fast_str(token->ID, "CopyUntilChar", 13) == true) return hdr_domStringCopyUntilChar(inter,token, for_var,result);
 				  if(hdr_inter_fast_str(token->ID, "Explode", 7) == true)        return hdr_domStringExplode(inter,token, for_var,result);
+				  if(hdr_inter_fast_str(token->ID, "ExplodeChar", 11) == true)   return hdr_domStringExplodeChar(inter,token, for_var,result);
 				  if(hdr_inter_fast_str(token->ID, "UrlEncode", 9) == true)      return hdr_domStringUrlEncode(inter,token,for_var,result);
 				  if(hdr_inter_fast_str(token->ID, "UrlDecode", 9) == true)      return hdr_domStringUrlDecode(inter,token,for_var,result);
 				  if(hdr_inter_fast_str(token->ID, "Base64Encode", 12) == true)  return hdr_domStringBase64Encode(inter,token,for_var,result) ;
@@ -1846,6 +1938,7 @@ bool hdr_inter_handle_function(PHDR_INTERPRETER inter ,PHDR_COMPLEX_TOKEN token,
 			if(hdr_inter_fast_str(token->ID, "Insert", 6) == true) return hdr_domSimpleListInsert(inter,token, for_var)				;
 			if(hdr_inter_fast_str(token->ID, "ToJson", 6) == true) return hdr_domJsonListToString(inter,token,for_var,result)       ;
 			if(hdr_inter_fast_str(token->ID, "ListToXmlStr", 12) == true) return hdr_domListToXmlStr(inter,token,for_var,result)	  ;
+           	if(hdr_inter_fast_str(token->ID, "Implode", 7) == true) return hdr_domListImplode(inter,token,for_var,result) ;	
 		}
 		else
 		if(for_var->type == hvt_fast_list)	
@@ -1858,6 +1951,7 @@ bool hdr_inter_handle_function(PHDR_INTERPRETER inter ,PHDR_COMPLEX_TOKEN token,
 			if(hdr_inter_fast_str(token->ID, "Remove", 6) == true) return hdr_domFastListRemove(inter,token, for_var,result);
 			if(hdr_inter_fast_str(token->ID, "RemoveAll", 9) == true) return hdr_domFastListRemoveAll(inter,token, for_var,result);
 			if(hdr_inter_fast_str(token->ID, "ToJson", 6) == true) return hdr_domJsonObjToString(inter,token,for_var,result)      ;
+			if(hdr_inter_fast_str(token->ID, "NamedIndex", 10) == true) return hdr_domFastListNamedIndex(inter,token, for_var,result); ;
 		}
 		else
 		if(for_var->type == hvt_string_list)	
@@ -1870,6 +1964,7 @@ bool hdr_inter_handle_function(PHDR_INTERPRETER inter ,PHDR_COMPLEX_TOKEN token,
 			if(hdr_inter_fast_str(token->ID, "Free", 4) == true) return hdr_domStringListReleaseMem(for_var);
 			if(hdr_inter_fast_str(token->ID, "LoadFromFile", 12) == true) return hdr_domStringListLoadFromFile(inter,token, for_var);
 			if(hdr_inter_fast_str(token->ID, "SaveToFile", 10) == true) return hdr_domStringListSaveToFile(inter,token, for_var);
+			if(hdr_inter_fast_str(token->ID, "Implode", 7) == true) return hdr_domStringListImplode(inter,token,for_var,result) ;	
 		}
 		else
 		if(for_var->type == hvt_bytes)
@@ -1886,6 +1981,8 @@ bool hdr_inter_handle_function(PHDR_INTERPRETER inter ,PHDR_COMPLEX_TOKEN token,
 			if(hdr_inter_fast_str(token->ID, "FindPattern", 11) == true)  return hdr_domBytesFindPattern(inter,token,for_var,result)   ;
 			if(hdr_inter_fast_str(token->ID, "Compare", 7) == true)       return hdr_domBytesCompare(inter,token,for_var,result)   ;
 			if(hdr_inter_fast_str(token->ID, "Xor", 3) == true)           return hdr_domBytesXor(inter,token,for_var,result);
+			if(hdr_inter_fast_str(token->ID, "FillWithZero", 12) == true) return hdr_domBytesFillZero(inter,token,for_var);
+			if(hdr_inter_fast_str(token->ID, "FillWithByte", 12) == true) return hdr_domBytesFillByte(inter,token,for_var);
 		}
 		else
 		if(for_var->type == hvt_file)

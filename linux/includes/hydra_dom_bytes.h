@@ -87,7 +87,7 @@ bool hdr_domBytesSetToZero(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHD
     return false ;
 
    fail : 
-    printf("The system function Bytes.Create($length : Integer) failed.\n");
+    printf("The system function Bytes.SetToZero() failed.\n");
     hdr_sys_func_free_params(params) ;
     return true ;
 }
@@ -232,7 +232,8 @@ bool hdr_domBytesCopyEx(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHDR_V
 
    if((source_start < 0)||(source_start >= src->length)||(source_end < 0)||(source_end > src->length)||(source_end < source_start))
    {
-        printf("The source start or end index is not in the valid range 0 - %d of the [Bytes].\n",src->length);
+        printf("The source start or end index is not in the valid range 0 - %d of the Source [Bytes].\n",src->length);
+        printf("Or the source end index and the source start index are not correct.\n");
         goto fail ;
    }
 
@@ -548,7 +549,59 @@ bool hdr_domBytesXor(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_VAR f
     return true ;
 }
 
+bool hdr_domBytesFillZero(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHDR_VAR for_var)
+{
+   PHDR_SYS_FUNC_PARAMS params = hdr_sys_func_init_params(inter,token->parameters,0) ;
+   if(params == NULL)
+   {
+    printf("The system function Bytes.FillWithZero() failed.\n");
+    return true ;
+   }
 
+   PHDR_BYTES bytes = (PHDR_BYTES)for_var->obj ;
+   memset(bytes->bytes,0,bytes->length) ;
+
+
+   success:
+    hdr_sys_func_free_params(params) ;
+    return false ;
+
+   fail : 
+    printf("The system function Bytes.FillWithZero() failed.\n");
+    hdr_sys_func_free_params(params) ;
+    return true ;
+}
+
+bool hdr_domBytesFillByte(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHDR_VAR for_var)
+{
+   PHDR_SYS_FUNC_PARAMS params = hdr_sys_func_init_params(inter,token->parameters,1) ;
+   if(params == NULL)
+   {
+    printf("The system function Bytes.FillWithByte($byte : Integer) failed.\n");
+    return true ;
+   }
+
+    bool type_error = false ;
+    DXLONG64 bt = hdr_inter_ret_integer(params->params[0],&type_error) ;
+	if(type_error == true)
+    {
+	  printf("The parameter must be an integer (0~255) .\n");
+      goto fail ;
+    }
+
+   PHDR_BYTES bytes = (PHDR_BYTES)for_var->obj ;
+   memset(bytes->bytes,(char)bt,bytes->length) ;
+
+
+   success:
+    hdr_sys_func_free_params(params) ;
+    return false ;
+
+   fail : 
+    printf("The system function Bytes.FillWithByte($byte : Integer) failed.\n");
+    hdr_sys_func_free_params(params) ;
+    return true ;
+}
 
 
 

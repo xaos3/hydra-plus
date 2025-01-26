@@ -177,6 +177,11 @@ void ExplodeEx(PDX_STRINGLIST parts,PDX_STRING source_string,PDX_STRING separato
  Gets the parts of a string. The separator is the separator for the parts e.g "," or "->"
 #*/
 
+void ExplodeChar(PDX_STRINGLIST parts,PDX_STRING source_string,char separator);
+/*#
+ Gets the parts of a string. The separator is the separator for the parts , a single byte
+#*/
+
 PDX_STRING CopyIndxToChar(PDX_STRING str ,DXUTF8CHAR c, DXLONG64 *indx);
 /*#
  Creates and return the string from [indx] until [c].
@@ -715,7 +720,7 @@ PDX_STRING dxStrUnXorHex(PDX_STRING text,PDX_STRING key);
 
 PDX_STRING dxStrReverse(PDX_STRING str);
 /*#
- The function reverses the string (BIMARY REVERSE the utf8 characters will be erroneus transform)
+ The function reverses the string (BINARY REVERSE the utf8 characters will be erroneus transform)
 #*/
 
 char * dxBytesXor(char * bytes,DXLONG64 bcount,PDX_STRING key) ;
@@ -723,6 +728,8 @@ char * dxBytesXor(char * bytes,DXLONG64 bcount,PDX_STRING key) ;
  The function creates a buffer with the same byte count as the bytes 
  but every byte of the buffer is xored with the key
 #*/
+
+
 
 void dx_strcpy(char *dest,char *source) ;
 
@@ -1801,6 +1808,76 @@ void ExplodeEx(PDX_STRINGLIST parts,PDX_STRING source_string,PDX_STRING separato
   return;
 }
 
+
+/*###############################################################*/
+
+PDX_STRING _get_line_to_char(char **buff_indx , char term )
+{
+    /*
+     helper function for the ExplodeChar.
+     returns the string until the term. The buff_indx will point to the next character after the 
+     term. If the first character that the function finds is the term then returns a NULL PDX_STRING.
+     To determine the caller the end of the string it can check the buff_indx, it must be 0
+     If the term does not exists then the function returns the string until the end.
+    */
+    char * str_indx   = *buff_indx   ;
+    if((*str_indx == 0)||(*str_indx == term)) return NULL ;
+    /*find the term*/
+    DXLONG64 term_pos = 0            ;
+    while ((*str_indx != term)&&(*str_indx != 0))
+    {
+        str_indx++ ;
+        term_pos++ ;
+    }
+
+    PDX_STRING nstr = NULL ;
+    /*check the state*/
+    if(*str_indx == term)
+    {
+        /*the terminator was found, copy the string*/
+        
+        char * str = malloc(term_pos+1) ; /*we will not copy the terminator*/
+        str[term_pos] = 0               ; /*terminate the string*/
+        memcpy(str,*buff_indx,term_pos) ; /*use the indx as count so the terminator will not be copied*/
+        nstr = dx_string_create_bU(str) ;
+        str_indx++ ; /*pass the termnator!*/
+    }
+
+    if(*str_indx == 0)
+    {
+        /*the terminator was not found, copy the string*/
+        
+        char * str = malloc(term_pos+1) ; /*copy the last byte too*/ 
+        str[term_pos] = 0             ; /*terminate the string*/
+        memcpy(str,*buff_indx,term_pos);
+        nstr = dx_string_create_bU(str) ;
+    }
+
+    *buff_indx = str_indx ;
+    return nstr ;
+}
+
+void ExplodeChar(PDX_STRINGLIST parts,PDX_STRING source_string,char separator)
+{
+
+     if(parts == NULL)          return ;
+     if(source_string == NULL)  return ;
+     /*get the strings*/
+     char *buff_indx  = source_string->stringa ;
+     while(true)
+     {
+       
+       PDX_STRING str = _get_line_to_char(&buff_indx , separator ) ;
+       /*check the state*/
+       if(str != NULL) dx_stringlist_add_string(parts,str) ;
+       if(*buff_indx == 0) break ;
+     }
+      return;
+}
+
+/*################################################################*/
+
+
 PDX_STRING CopyIndxToChar(PDX_STRING str ,DXUTF8CHAR c, DXLONG64 *indx)
 {
 /*#
@@ -1880,6 +1957,7 @@ DXLONG64 dxHexToDec(char *hex)
             rem = rem-55;
         else if(rem>=97 && rem<=102)
             rem = rem-87;
+        else return -1 ;
         decnum = decnum + (rem*pow(16, i));
         len--;
         i++;
@@ -2267,6 +2345,18 @@ bool dxIsCharNumber(char c)
 bool dxIsCharNumberOrDot(char c)
 {
     char* validc = "1234567890.";
+    int len = strlen(validc);
+    for (int i = 0; i < len; i++)
+    {
+        if (validc[i] == c) return true;
+    }
+
+    return false;
+}
+
+bool dxIsCharNumberDotOrSign(char c)
+{
+    char* validc = "+-1234567890.";
     int len = strlen(validc);
     for (int i = 0; i < len; i++)
     {
@@ -2766,9 +2856,65 @@ char* dxCopySectionFromStrSmart(char** source, char open_ch, char close_ch, char
     char* source_indx = *source;
 
     int   chars_in_section = 0;
+    int comment_type = 0 ;
+
 
     while (*source_indx != 0)
     {
+
+        /*check for the comments --------------------*/
+        if(str_indent == 0) /*if we are not in a string section*/
+        {
+            if(comment_type == 1)
+            {
+              if((*source_indx == '*')&&(*(source_indx+1) == ']'))
+              {
+                /*exit comment section*/
+                comment_type = 0 ;
+                source_indx      = source_indx + 2 ; /*next valid character*/
+                chars_in_section = chars_in_section + 2 ;
+              }
+            }
+            else
+            if(comment_type == 2)
+            {
+              if(*source_indx == 10)
+              {
+                  /*exit comment , new line*/
+                  comment_type = 0 ;
+                  source_indx = source_indx + 1; /*next valid character*/
+                  chars_in_section = chars_in_section + 1 ;
+              }
+            }
+
+            if(comment_type == 0)
+            {
+                if((*source_indx == '[')&&(*(source_indx+1) == '*'))
+                {
+                  /*enter comment section*/
+                  comment_type = 1 ;
+                  source_indx = source_indx + 2 ; /*next valid character*/
+                  chars_in_section = chars_in_section + 2;
+                }
+                else
+                    if((*source_indx == '#')||(*source_indx == '?'))
+                    {
+                        comment_type = 2 ;
+                        source_indx++ ; /*next valid character*/
+                        chars_in_section++ ;
+                    }
+            }
+
+            /*if we are in a comment section then ommit any character*/
+            if(comment_type != 0) 
+            {
+                /*next character*/
+                source_indx++ ;
+                chars_in_section++ ;
+                continue ;
+            }
+        }
+        /*-------------------------------------------*/
 
         /*check if we close a string*/
         if ((str_indent != 0) && (*source_indx == str_indent))
@@ -3006,14 +3152,69 @@ bool dxCheckSectionPairingSmart(char* str, char open_char, char close_char, char
     /*
       the function checks if the pairings are valid. If for any reason the open_chars become < 0
       then the expression has not correct pairings
+
+      the function will check for comment sections like [**] # or ?
+
     */
     int open_chars = already_open;
-    char str_i = 0;
-    char* strint = "";
+    char str_i     = 0;
+    char* strint   = "";
     if (str_indent == NULL) str_indent = strint;
+
+    int comment_type = 0 ; // 0 - not in comment 1 in multiline comment 2 in one line comment  
 
     while (*str != 0)
     {
+        /*check for the comments --------------------*/
+        if(str_i == 0) /*if we are not in a string section*/
+        {
+                if(comment_type == 1)
+                {
+                  if((*str == '*')&&(*(str+1) == ']'))
+                  {
+                    /*exit comment section*/
+                    comment_type = 0 ;
+                    str = str + 2 ; /*next valid character*/
+                  }
+                }
+                else
+                if(comment_type == 2)
+                {
+                  if(*str == 10)
+                  {
+                      /*exit comment , new line*/
+                      comment_type = 0 ;
+                      str = str + 1; /*next valid character*/
+                  }
+                }
+
+                if(comment_type == 0)
+                {
+                    if((*str == '[')&&(*(str+1) == '*'))
+                    {
+                      /*enter comment section*/
+                      comment_type = 1 ;
+                      str = str + 2 ; /*next valid character*/
+                    }
+                    else
+                        if((*str == '#')||(*str == '?'))
+                        {
+                            comment_type = 2 ;
+                            str++ ; /*next valid character*/
+                        }
+                }
+
+                /*if we are in a comment section then ommit any character*/
+                if(comment_type != 0) 
+                {
+                    /*next character*/
+                    str++ ;
+                    continue ;
+                }
+        } /*if not in string section */
+        /*-------------------------------------------*/
+
+        if(*str == 0) break ; /*check if the comments are ending the string, this error will be handled in the caller*/
 
         if (str_i != 0)
         {
@@ -3021,7 +3222,7 @@ bool dxCheckSectionPairingSmart(char* str, char open_char, char close_char, char
         }
         else
         {
-            if (dxIsCharInSet(*str, str_indent) == true)
+            if (dxIsCharInSet(*str, str_indent) == true) /*check if the character is in a string */
                 str_i = *str;
             else
             {
@@ -3319,7 +3520,11 @@ char* dxCopyStrToCharReverse(char** str , char c, char* str_indent)
        break ;
       }
       else
-       if(str_indx == *str) break ;
+       if(str_indx == *str) 
+       {
+           bcount++ ;
+           break ;
+       }
        else
        {
          bcount++ ;

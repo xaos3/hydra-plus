@@ -498,7 +498,7 @@ PHDR_VAR hdrParseXmlString(PDX_STRING xml,PDX_STRING error)
  char *str_indx = xml->stringa ; 
  
  /*
-  The xml tag has the format of <tag>value</tag> or <tag><![CDATA[some stuff]]></tag> in simple its simple form
+  The xml tag has the format of <tag>value</tag> or <tag><![CDATA[some stuff]]></tag> in simple form.
   In the empty form the xml string has the format of <tag\> this is empty string
   In the more advanced form the xml tag can have properties like <tag prop1="hello"> or <tag prop1='hello'>
   This function parses the xml string a simple as it gets 

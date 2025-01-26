@@ -32,7 +32,7 @@
  */
 
 
-#define HDR_JSON_HASH_BUCKETS 50
+#define HDR_JSON_HASH_BUCKETS 5
 
 bool hdr_json_handle_object(PDX_HASH_TABLE obj, char **str,PDX_STRING error) ;
 bool hdr_json_handle_array(PDX_LIST arr, char **str,PDX_STRING error)        ;
@@ -48,6 +48,7 @@ char *hdr_json_copy_string(char **json,PDX_STRING error)
   and converts the escape sequences \\ \" \/ \r \n \t to bytes
   The function returns a new malloced string with the string and the **json 
   is pointing to the next character after "
+
  */
 
   error = dx_string_createU(error,"") ;
@@ -60,7 +61,7 @@ char *hdr_json_copy_string(char **json,PDX_STRING error)
   {
      if(*temp_json == '"') break ;
   
-	 if(*temp_json == '\\')
+	 if((*temp_json == '\\')&&((*(temp_json+1))!='u')) /*the \u signals a unicode char (4 hexadecimal digits follows)*/
 	 {
 	   /*the next character must create one of the above escape sequences else we will throw an error*/
 	  char next_char = *(temp_json+1) ; 
@@ -71,7 +72,7 @@ char *hdr_json_copy_string(char **json,PDX_STRING error)
 	  }
 	  else
 	  {
-	   hdr_inter_hlp_concatenate_and_set(error,"The escape character [\\] has to be accompanied by an [\\] [/] [\"] [r] [n] or [t]. In sentence :",*json,"") ;
+	   hdr_inter_hlp_concatenate_and_set(error,"The escape character [\\] has to be accompanied by an [\\] [/] [\"] [r] [n] [t] or [u]. In sentence :",*json,"") ;
 	   goto end ;
 	  }
 	 
@@ -100,7 +101,7 @@ char *hdr_json_copy_string(char **json,PDX_STRING error)
   {
      if(*temp_json == '"') break ;
   
-	 if(*temp_json == '\\')
+	 if((*temp_json == '\\')&&((*(temp_json+1))!='u')) /*the \u signals a utf8 character (4 hexadecimal digits follows) */
 	 {
 	   /*the next character must create one of the above escape sequences else we will throw an error*/
 	  char next_char = *(temp_json+1)   ;  
@@ -153,7 +154,7 @@ char *hdr_json_copy_numeric_token(char **json,PDX_STRING error)
      if((*temp_json == ',')||(*temp_json == ']')||(*temp_json == '}')||(*temp_json == ' ')||(*temp_json == '\n')||(*temp_json == '\r')
 		 ||(*temp_json == '\t')||(bcount == 33)) break ;
 	 /*check for basic numeric character validity*/
-	 if(dxIsCharNumberOrDot(*temp_json) == false)
+	 if(dxIsCharNumberDotOrSign(*temp_json) == false)
 	 {
 		hdr_inter_hlp_concatenate_and_set(error,"The token is not a valid number : ",*json,"") ;
 		goto end ;
@@ -897,13 +898,13 @@ PDX_LIST hdrParseJsonString(PDX_STRING json,PDX_STRING error)
  /*check the type , can be an object or array*/
  if(*str_indx=='[')
  {
-   if(dxCheckSectionPairing(str_indx,'[',']',"\"") == false) 
+  /* if(dxCheckSectionPairing(str_indx,'[',']',"\"") == false) 
    {
 	   error = dx_string_createU(error,"The string is not a valid JSON string. The closing ']' is missing") ; 
 	   dx_list_delete_list(root) ;
 	   return NULL ;
    }
-
+   */
    PDX_LIST arr = hdr_json_add_arr_arr(root) ;
    if(hdr_json_handle_array(arr,&str_indx,error) == false )
    {
@@ -917,13 +918,13 @@ PDX_LIST hdrParseJsonString(PDX_STRING json,PDX_STRING error)
  else
 	 if(*str_indx=='{')
 	 {
-	   if(dxCheckSectionPairing(str_indx,'{','}',"\"") == false) 
+	/*   if(dxCheckSectionPairing(str_indx,'{','}',"\"") == false) 
 	   {
 		   error = dx_string_createU(error,"The string is not a valid JSON string. The closing '}' is missing") ; 
 		   root = dx_list_delete_list(root) ;
 		   return NULL ;
 	   }
-
+	*/
 	   PDX_HASH_TABLE obj = hdr_json_add_arr_obj(root) ;
 	   if(hdr_json_handle_object(obj,&str_indx,error)==false) 
 	   {
@@ -1007,7 +1008,7 @@ PDX_STRING hdr_json_h_replace_cntrl(PDX_STRING val)
 		accum_indx = accum ;
 	}
 	else
-	if(*str_indx == '\\')
+	if((*str_indx == '\\')&&((*(str_indx+1)) !='u'))
 	{
 		*accum_indx = 0 ;
 		dx_stringlist_add_raw_string(strl,accum) ;
