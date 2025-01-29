@@ -1,0 +1,1396 @@
+#################################################
+#This File holds the implementation of 
+#the HTTP protocol (subset not all actions are supported for now)
+#that will be used to send POST and GET requests
+#################################################
+
+
+############## Exposed Objects ##################
+#####Class HTTP################################## 
+#.AddHeader($name,$value)
+#.RetReqHeader($name):Simple String  -> empty if the header does not exists
+#.RetRespHeader($name):Simple String -> empty if the header does not exists
+#.RespHeadersJson():Simple String    -> returns in Json form all the headers of the response
+#.ReqHeadersJson():Simple String     -> returns in Json form all the headers of the request
+#.ReqHeadersClear()					 -> Empties the headers
+#.RespHeadersClear()				 -> Empties the headers
+#.Get($url):Bytes                    -> returns the response from the get request as bytes or undef on error
+#.Post($url,$content) : Bytes        -> returns the response from the Post request as bytes or undef on error
+#.GetStatus(): Integer               -> returns the status of the request. Initialized as 0 
+#.SetPort($port:Integer)             -> sets the port for the connection. The default is 80 for http and 443 for https
+# To do : Handle redirection
+#       : support gzip  
+
+
+###This object is not thread safe do not try to simultaneously use it from different threads
+#
+####Functions#################################### 
+#ConstrFromUrl(in->$url,out->host,out->query):Boolean -> break the url to the host and the query parts. 
+#Supports only https, return false if the url is malformed or true in success
+#
+#################################################
+
+
+obj HTTP
+{
+
+  ########## Constants ######################
+ 
+  $TRIMCH       = setFromChars("#13#10#9")+" " ; # characters that will be trimmed  
+  $LF           = setFromChars("#10") ;
+  $CR           = setFromChars("#13") ;
+  $CRLF         = setFromChars("#13#10") ;
+  $ZERO         = 48 ;
+ 
+  ###########Private#########################
+  $reqHeaders  = List.CreateFastList(10);
+  $respHeaders = List.CreateFastList(10); 
+  $_status_   = integer(0)  		    ;
+  $port       = 0                       ; 
+
+  ##### Functions ##############################  
+  func SetPort($int)
+  {
+    $port = $int ;
+  }
+  func AddHeader($name,$value)
+  {
+    #if the header already exists then its value will be altered 
+    $reqHeaders[$name] = $value ;
+  }
+  
+  func RetReqHeader($name)
+  {
+    if ($reqHeaders.Exists($name) == false) return "" ;
+	return $reqHeaders[$name]  ;
+  }
+	
+  func RetRespHeader($name)
+  {
+    if ($respHeaders.Exists($name) == false) return "" ;
+	return $respHeaders[$name]  ;
+  }
+	
+  func RespHeadersJson()
+  {
+   $error = "" ;
+   $json = $respHeaders.ToJson($error);
+   if($error != "") echo("HTTP.RespHeadersJson -> Error in the Json construction. Error : "+$error);
+   return $json ;
+  }
+
+  func ReqHeadersJson()
+  {
+    $error = "" ;
+    $json = $reqHeaders.ToJson($error);
+    if($error != "") echo("HTTP.ReqHeaderJson -> Error in the Json construction. Error : "+$error);
+    return $json ;
+  }  
+  
+  func ReqHeadersClear()
+  {
+    $reqHeaders.Clear();
+  }
+  
+  func RespHeadersClear()
+  {
+    $respHeaders.Clear();  
+  }
+  
+  func GetStatus()
+  {
+    return $_status_ ;
+  } 
+  
+  func Post($url,$content)
+  {
+    return _REQ($url,$content,"POST") ;
+  }
+  
+  func Get($url)
+  {
+    return _REQ($url,"","GET") ;
+  }
+  
+  func _REQ($url,$content,$type) ?:Bytes ,the Bytes length is the data true length 
+  {
+  
+#####################################################################################
+# The function constructs a POST or GET request , send it , and accumulates all the #
+# The response to a large byte buffer that will return to the caller		        #
+#####################################################################################
+
+
+
+$post_req = String.Create(`POST {$query} HTTP/1.1
+Host: {$host}
+Content-Length: {$content_length}
+{$headers}
+{$content}
+`,var_expand);
+
+$get_req = String.Create(`GET {$query} HTTP/1.1
+Host: {$host}
+{$headers}
+`,var_expand);
+ 
+    $retBytes = undef();
+    $host  = "" ;
+    $query = "" ;
+    ConstrFromUrl($url,$host,$query) ; # get the parts from the url
+	$protocol = _get_protocol($url)  ; #get the protocol
+	if(($protocol.Upper()!="HTTP")&&($protocol.Upper()!="HTTPS"))
+	{
+	 echo("HTTP -> Error : The only protocols that we support, are the HTTP and HTTPS");
+	 return undef ;
+	}
+	
+	$content_length = $content.ByteCount();
+
+    #create a string from the request headers 
+	$temph = String.Create("",concat);
+	$indx = 0 ;
+	loop
+	{
+	  if($indx == $reqHeaders.Count()) break;
+	  $hdrval = $reqHeaders[$indx] ;
+	  $temph.Concat($reqHeaders.NamedIndex($indx)+": "+$hdrval+$CRLF);
+	  inc($indx);
+	}
+    
+	$reqstr = "" ;
+	$headers = $temph.ToSimple();
+	if($type == "GET") $reqstr = $get_req.ExpandToSimple();
+	else
+	if($type == "POST") $reqstr = $post_req.ExpandToSimple();
+ 
+	$temph.Free() ;
+
+	#############do the connection and send the request 
+	$error = "" ;
+	$bconn = undef() ;
+	if($protocol.Upper()=="HTTPS")
+	{
+	  $cport = 443 ;
+	  if($port != 0) $cport = $port ;
+	  $bconn = SSL.Connect($host,$cport,$error);
+	}
+	else
+	{
+	  $cport = 80 ;
+	  if($port != 0) $cport = $port ;
+	  $bconn =Socket.ClientTCP($host,$cport,$error);
+	}
+	
+	if($bconn.IsValid() == false )
+	{
+	   echo("HTTP._REQ -> Error in connection with the host : "+$host);
+       $post_req.Free() ;
+	   $get_req.Free()  ;
+	   return undef()   ;
+	} 
+
+	if($bconn.SendUTF8($reqstr) == -1)
+	{
+	   echo("HTTP._REQ -> Error sending the request for the products");
+       $post_req.Free() ;
+	   $get_req.Free()  ;
+	   $bconn.Free()    ;
+	   return undef()   ;
+	}
+	
+    #now the hard part. We have to get the transmition and know when the data has been transmited so to stop 
+	#receiving.
+	#the hard part is the chunked part and the content length is the easy one 
+
+	$state = 0 ; #states of transmition before find the load. -1 = header is done go to handle load. 0 = normal state we just get the data. 1 = the transmition has a broken crlf pair
+				 #2 = the transmition has a crlf pair and after that a broken crlf pair and we expect the next buffer to have the missing lf, 3 = the buffer ends with crlf 
+	$chunked      = false ; #this will be used later when constructing the return buffer 
+	$data_buffers = List.CreateList(); ? FREE THIS			 
+	$tot_buf_sz   = 0 ; #this is to calculate the buffer size that we will need to compile the complete header (+the remainder of the last buffer)
+	loop
+	{
+
+	   $bcount = integer(0)       ; 
+	   $bytes  = _create_buffer() ;
+	   if(_get_transmition_packet($bconn,$bytes,$bcount) == true)
+	   {
+	     $bytes.Free();
+	     break ;
+	   }
+	   $buf_info = List.CreateList();
+       $data_buffers[]  = $buf_info  ;
+	   $buf_info.buffer = $bytes     ;
+       $buf_info.count  = integer($bcount)    ; 	   
+	   $tot_buf_sz  = $tot_buf_sz+$bcount ;
+	   
+	   $buf_info.afterHeader = -1    ; # if -1 then the buffer has not the termination of the header , 
+	                                   # if -2 then the buffer has the last crlf of the header and nothing after that
+									   # any other value is the index of the byte after the crlf that terminates the headers.
+ 	   	 
+	   if(_set_state($buf_info,$state) == false) # this sets the afterHeader member of the $buf_info 
+	   {
+	    #an error occured , abort
+		echo("HTTP._REQ -> Error in _set_state. Possibly malformed header");
+		$post_req.Free() ;
+	    $get_req.Free()  ;
+	    $data_buffers.Free();
+		$bconn.Free()       ;
+		return undef()      ;
+	   }
+
+	   #if the state of the buffer is -1 procceed to handle the load 
+	   if($state == -1 )
+	   {
+	     if (_receive_load($bconn,$data_buffers,$tot_buf_sz,$chunked) == false) 
+		 {
+		   echo("HTTP._REQ -> Error in _set_state. Possibly malformed header");
+		   $post_req.Free() ;
+	       $get_req.Free()  ;
+	       $data_buffers.Free();
+		   $bconn.Free()       ;
+		   return undef()      ;
+		 }
+		  else  break ;
+	   }
+	   
+	}
+
+    #concatenate all the buffers to one big buffer and release their memory 
+    $big_buffer =  _concat_buffs($data_buffers) ;  
+	$retBytes = _parse_response($big_buffer,$chunked); 
+   
+	############Clean up###############################
+	$data_buffers.Free();
+    $post_req.Free() ;
+	$get_req.Free()  ;
+	$big_buffer.Free();
+	$bconn.Free()    ; # disconnect and release the memory
+	############Return the bytes#######################
+    return $retBytes ;
+}
+
+
+
+
+
+############ HELPING FUNCTIONS #########################
+
+func _receive_load($bconn,$data_buffers,$tot_sz,$chunked)?:Boolean 
+{
+  [*
+    The starting state of the function is that the last buffer in the $data_buffers
+    has the end of the headers , we need to find the type of the transmition e.g chunked or not [Transfer-Encoding]
+	and if needed the [Content-Length]. To do this easily we will concatenate the buffers in the data_buffers 
+	(the memory is small for only the headers) in a temporary buffer and we will find the headers that we 
+	need
+  *]
+  $chunked        = false ; #if the transmition is chunked
+  $cont_len       = 0     ; #if the transmition is not a chunked one this is the length of the content
+  $hdr_buff = _create_hdr_buff($data_buffers,$tot_sz) ;
+  
+  if(_get_trans_type($hdr_buff,$chunked,$cont_len) == false)
+  {
+   	$hdr_buff.Free()  ;
+    return false      ;	
+  }  
+  $hdr_buff.Free()    ; # we have no use for this
+ 	
+  #continue to receive the transmition.
+  #check the transmition type
+  if($chunked == false)
+  {
+     if(_get_single_trans($bconn,$data_buffers,$cont_len)==false) return false ;
+  }  
+  else
+	 {
+	   if(_get_chunk_trans($bconn,$data_buffers)==false) return false ;
+	 }
+
+   return true ;
+}
+
+
+
+func _get_single_trans($bconn,$data_buffers,$cont_len)?:Boolean
+{
+  #the transmition has a content length so it is a lot simpler than the chunked transmition.
+  #first we will caclulate how many bytes of the content are already transmited								   
+  $buff        = $data_buffers[$data_buffers.Count()-1] ;
+  $trans_bytes = 0 ;  
+  if($buff.afterHeader > 0 ) $trans_bytes = $buff.count - $buff.afterHeader ; ?we do not do -1 from the count because the afterHeader points to the first byte of the content
+  
+  #check if the load has been already transmited
+  if($trans_bytes == $cont_len) return true ;
+  
+  #continue with the receiving
+  loop
+  {
+	 $bcount = integer(0)       ; 
+	 $bytes  = _create_buffer() ;
+	 if(_get_transmition_packet($bconn,$bytes,$bcount) == true) 
+	 {
+	   $bytes.Free();
+	   break ;
+	 }
+	 $buf_info = List.CreateList() ;
+     $data_buffers[]  = $buf_info  ;
+	 $buf_info.buffer = $bytes     ;
+     $buf_info.count  = integer($bcount)    ; 	   
+	 
+	 $trans_bytes = $trans_bytes + $bcount ;
+     if($trans_bytes >= $cont_len) break; 	 
+  }
+
+  return true ;
+}
+
+func _get_chunk_trans($bconn,$data_buffers)?Boolean
+{
+
+ [*
+  The chunked transmition is more complicated. We have to find the chunksize and calculate the transmited data 
+  until the last zero chunk size
+ *]
+  
+  $_cr = 13 ;
+  $_lf  = 10 ;
+  
+  $chunk_remain    = integer(0) ;
+  $chsize          = integer(0) ;
+  $state           = "after_ch" ;
+
+  #first find the size of the first chunk if exists in the last received buffer
+  $buff = $data_buffers[$data_buffers.Count()-1] ;
+  
+  if($buff.afterHeader > 0) 
+  {
+   #check if there is a chunk size,
+   $newpos = integer(0) ;
+   $part   = _get_chunk_size($buff,$buff.afterHeader,$chsize,$newpos);
+   #part is not used right now
+   if($part.IsUndef() == false )$part.Free();
+   if($chsize == -1 ) return false ;  
+   
+   if($chsize == -2) {nop;}
+   else
+     {
+	   #we retrieved the size for the next chunk . Calculate how many bytes have already transmited
+	   if($newpos == $buff.count - 1 )
+	   {
+	     #no bytes has been transmited
+		 $chunk_remain = $chsize ; # we expect all the bytes
+	   }
+	   
+	   #if the bytes in the buffer are fewer of the bytes of the chunk then we set the remaining bytes 
+	   if(($buff.count - $newpos) < $chsize) $chunk_remain = $chsize - ($buff.count - $newpos) ;
+	   else
+	     if(($buff.count - $newpos) == $chsize) $chunk_remain = 0 ; #all the bytes has been transmited
+		 else
+		 {
+		   #this is tricky , the bytes are more than the bytes of the chunk , so we have to check for other sizes and chunks in the buffer
+		   $indx = $newpos + $chsize ; #start after the chunk 
+		  
+		   $_half_size = undef() ; # this is created in the _set_chunk_state
+		   loop
+		   {
+				 if($indx >= $buff.count-1) break ;
+				 #the following function will return the state of the chunk until parsing all the buffers byte
+			
+			     _set_chunk_state($buff,$indx,$_half_size,$state,$chunk_remain);
+				 
+				 if($state == "zero") break ;
+				 if($state == "error") 
+				 {
+				   if($_half_size.IsUndef() == false) $_half_size.Free();  #for good measure
+				   return false;
+				 }
+		   }?loop
+		   if($_half_size.IsUndef() == false) $_half_size.Free();  #for good measure
+		 }
+		 
+		 #check if the state is after_ch , this is not correct if the chunk_remain is > 0 and
+		 #is the initialized value of the state. So we will change it to on_chunk
+		 if(($chunk_remain > 0)&&($state == "after_ch")) $state = "on_chunk" ;
+
+	 }
+   
+  }
+   else
+       {
+	     $state ="on_sz"   ; # the buffer is done with no remainders we expect a chunk size in the next buffer
+		 $chunk_remain = 0 ;
+	   }
+
+   $_half_size = undef();	                      
+   loop
+   {
+     #get the transmition data
+     $bcount = integer(0)       ; 
+	 $bytes  = _create_buffer() ;
+	 if(_get_transmition_packet($bconn,$bytes,$bcount) == true) 
+	 {
+	   $bytes.Free();
+	   break ;
+	 }
+	 #in some connections the server send a 0crlf chunk that 
+	 #follows a normal chunk. I do not think that this is in the standard
+	 #but i will handle it, by ommit it alltogether
+
+	 if(($state == "after_ch")&&($bcount >= 3))
+     {
+       if(($bytes[0] == 48)&&($bytes[1] == 13)&&($bytes[2] == 10))
+	   {
+	    #free the buffer
+		$bytes.Free();
+		#ommit the buffer
+		continue ;
+	   }
+     }	 
+
+	 $buf_info = List.CreateList() ;
+     $data_buffers[]  = $buf_info  ;
+	 $buf_info.buffer = $bytes     ;
+     $buf_info.count  = $bcount    ; 	   
+     
+	 $buff = $buf_info ;
+     $indx = 0 ;	 
+	 loop
+     {	 
+	   if($indx >= $buff.count) break ;
+	   _set_chunk_state($buff,$indx,$_half_size,$state,$chunk_remain);
+
+	   if($state == "zero") break ;
+	   if($state == "error") 
+	   {
+	     if($_half_size.IsUndef() == false) $_half_size.Free();  #for good measure
+	     return false;
+	  }
+     }
+      
+      if($state == "zero") break ; #end of all the transmition
+	  if($state == "error") 
+	  {
+		if($_half_size.IsUndef() == false) $_half_size.Free();  #for good measure
+		return false;
+	 }
+   }
+ 
+   if($_half_size.IsUndef() == false) $_half_size.Free();  #for good measure
+   
+   return true ;
+}
+
+
+
+func _set_chunk_state($buff,$indx,$_half_size,$state,$chunk_remain)
+{
+	#every chunk is terminated by a crlf pair , check if this is true
+	#we can have the following "abnormal" conditions :
+	#broken size [br_sz],  broken chunk [br_ch], broken crlf of the chunk [br_ch_cr]
+	#the condition that the index is after the chunk and before the terminating crlf is the [after_ch]
+	#the condition that we are expecting a size is the [on_sz]
+	#the condition that we are in the first byte of a chunk is the [on_chunk]
+	#th condition of finding the 0 size chunk is [zero]
+	#if an error occurs the returned value is [error]
+	$_cr = 13 ;
+	$_lf = 10 ;
+	switch($state)
+	{
+		"after_ch" : #after the chunks bytes , we need the terminating crlf
+				  {
+				     $but = $buff.buffer ;
+
+					 ?check for broken [chunk terminating]
+					 $ret = _is_crlf_br($buff,$indx) ;
+				 
+					 if( $ret == 0) 
+					 {
+						$state = "br_ch_cr" ;
+						inc($indx) ; #go out of bounds
+					 }
+					 else
+					    if($ret == -1)
+						{
+						  $state = "error" ;
+						  return ;
+						}
+						else
+						{
+						 #all ok go after the crlf 
+						 $indx = $indx + 2 ; #next byte
+						 #set the next state 
+						 $state = "on_sz" ; #in the next call of the function we need to find the size!
+				       }
+				  }
+				  
+		 "on_sz"  : #the index is on the first byte of the chunk size
+				  {
+                     #try to retrieve he size
+					 $size   = 0 ; 
+					 $newpos = 0 ;
+					 
+	                 $_half_size = _get_chunk_size($buff,$indx,$size,$newpos) ; #return the part of the size if the sdize is broken 			 
+					 $indx = $newpos ; # in every case the indx has to be updated
+	
+					 #check if we found the size
+					 if($size == -1)
+					 {
+					   #the size was not found , presumably the broken size will be completed in the next buffer
+					   #the $tmpb has the bytes of the size component
+					   $state = "br_sz" ;
+					 }
+					  else
+					     if($size == 0)
+						 {
+						  $state = "zero" ;
+						 }
+						 else
+							 {
+							   # we found the size of the chunk, is already set in the $size, set the state and exit
+							   $state = "on_chunk";
+							   #the $size will be used to detect the chunks end (we cannot just check for crlf as a chunk can have this characters as payload)
+							 }
+				  }
+				  
+		"br_sz"    :#the previous iteration produced a half of the size and we can find it in the $_half_size variable
+				  {
+                     #now this can be tricky too , as if we are exeptional unlucky the size can be in a more than 2 buffers.
+					 #why something to send byte by byte ? Who knows.
+					 #check if the last byte of the $_half_size is cr , then we need only the LF 
+					 $lastb = $_half_size.Length()-1 ; 
+					 if($_half_size[$lastb] == $_cr)
+					 {
+					   #check if we point to a lf the $indx must be 0 in this point 
+					   if($buff[$indx] == $_lf) 
+					   {
+					     #ok we found the size , set the state and recover it
+						 inc($indx) ; #the first byte of the chubk or out of bounds
+						 #retrieve the actual size 
+						 $size = _get_chunk_size_cr($_half_size,$indx) ;
+						 if($size == 0 )$state = "zero";
+						 else 
+						 	$state = "on_chunk" ;
+						 $_half_size.Free();
+					   }
+					 }
+					  else
+					     {
+						   #apparently the size is either broken in the numeric data or before the full crlf
+						   #check the easy one first , if the last byte in the broken size is cr and the buffer does not 
+						   #have any other bytes
+						   $last_indx = $buff.count-1 ;
+						   if(($buff[$indx] == $_cr)&&($indx == $last_indx)) 
+						   {
+						     $state = "br_sz" ;
+						     #we have only the cr of the crlf in the buffer so we will produce again a broken size state
+							 #construct the new half size buffer (+ cr character)
+							 _add_a_char($_half_size,$_cr) ;
+							 inc($indx) ; #go out of bounds
+						   }
+						    else
+							if(($buff.buffer[$indx] == $_cr)&&($buff.buffer[$indx] == $_lf)) 
+							{
+							 #we found the termination , the $_half_size has the actual size 
+							 #advance the $index , set the $size and the $state
+							 $indx = $indx + 2 ;
+							 $size = _get_chunk_size_no_term($_half_size);
+							 if($size == 0) $state = "zero" ;
+							 else
+							    $state = "on_chunk";
+								
+							 $_half_size.Free();
+							}
+							 else
+							   {
+									#apparently the $_half_size needs more bytes,check if there is the termination
+									$pos = _exists_termination($buff,$indx) ;
+									if($pos == -1)
+									{
+									  #the size termination seq soes not exists , check if exists the cr
+									  $pos = _exists_cr($buff,$indx) ;
+									  if($pos == -1)
+									  {
+										#does not exists , all the bytes from $indx until the end have to be copied in the $_half_size
+										$state = "br_sz" ;
+										_concat_to_end($_half_size,$buff,$indx) ;
+										$indx = $buff.count ; #go out of bounds
+									  }
+									   else
+										  {
+										   #exists, we create a $_half_size with the bytes of the previous half size and the cr character
+										   $state = "br_sz" ;
+										   _add_a_char($_half_size,$_cr) ;
+										   inc($indx)  ; # normally go out of bounds
+										  }
+									}
+									 else
+										{
+										  # the termination sequence exists set the state and increase the index
+										  $indx  = $indx + 2 ;
+										  $state = "on_chunk" ;
+										  $_half_size.Free();
+										}
+							    
+							   }#else
+						   
+						   
+						 }#else
+					 
+				   }#br_sz		
+				  
+		"br_ch"   :#the previous iteration produced a half chunk
+				  {
+                    #we will loop the bytes until the end of the buffer or 
+                    #if the $chunk_remain becomes 0.
+					loop
+					{
+						  if($indx == $buff.count) break ; #the state is remaining as broken chunk
+						  dec($chunk_remain); 
+						  if($chunk_remain == 0)
+						  {
+							inc($indx) ; #next byte
+							$state = "after_ch" ;
+						  }
+							else inc($indx) ;
+					 }
+
+					
+				  }									  
+		"br_ch_cr":#the previous iteration produced a cr for a chunk termination sequence 
+				  {
+					if($buff.buffer[$indx] != $_lf ) return "error" ;
+					#all ok change the state and increase the indx
+					$state = "on_sz" ;
+                    inc($indx);
+				  }		
+	   "on_chunk" : #the indx is in the first byte of the chunk 
+				   {
+						#we will loop the bytes until the end of the buffer or 
+						#if the $chunk_remain becomes 0.
+						loop
+						{
+							  if($indx == $buff.count) 
+							  {
+							    $state = "br_ch" ;
+							    break ; #the state will change to a broken chunk
+							  }
+							  dec($chunk_remain); 
+							  if($chunk_remain == 0)
+							  {
+								inc($indx) ; #next byte
+								$state = "after_ch" ;
+							  }
+
+							  inc($indx) ;
+						 }
+
+				   }
+
+	}
+}
+
+
+func _concat_to_end($dest,$buff,$from_indx)
+{
+	$hfs = $dest.Length()+($buff.count-$from_indx);
+	$tmpb = Bytes.Create($dest.Length());
+	$tmp.Copy($dest);
+	$dest.Reset($hfs) ;
+	#fill the buffer 
+	$dest.Copy($tmpb) ;
+	$dest.CopyEx($buff.buffer,$tmpb.Length(),$from_indx,$buff.count-1) ;
+	$tmpb.Free();
+}
+
+func _add_a_char($bytes,$char)
+{
+	$hfs = $_half_size.Length()+1;# + $char
+	$tmpb = Bytes.Create($_half_size.Length());
+	$tmp.Copy($_half_size);
+	$_half_size.Reset($hfs) ;
+	#fill the buffer 
+	$_half_size.Copy($tmpb) ;
+	$_half_size[$_half_size.Length()-1] = $char ;
+	$tmpb.Free();
+}
+
+func _exists_termination($buff,$indx)?:Integer -1 -> does not exists eny other value is the position of the crlf
+{
+	return  $buff.buffer.FindPattern($CRLF,$indx) ;
+	
+}
+
+func _exists_cr($buff,$indx)?:Integer -1 does not exists any other value is the position of the cr
+{
+  return  $buff.buffer.FindPattern($CR,$indx) ;
+}
+
+
+func _is_crlf_br($buff,$indx)?Integer 0 -> is broken. 1 -> is not broken. -1 -> error
+{
+  #check if the buff does not have space for the LF and the current index is a CR
+  $bytes = $buff.buffer ;
+  if(($buff.count - 1) == $indx) 
+  {
+   if($bytes[$indx]==13) return 0; else return (0-1) ;
+  }
+
+  echo("@@@@@@@@@@@$indx : "+$indx.ToString(0));
+  if(($bytes[$indx]==13)&&($bytes[$indx+1]==10)) return 1 ;
+  
+  $db1 = $bytes[$indx] ;
+  $db2 = $bytes[$indx+1] ;
+  return (0-1) ;
+}
+
+func _get_chunk_size($buff,$cindx,$size,$newpos)?:Bytes
+{
+ #the function returns the size of the chunk and undef. If the size is broken e.g 
+ #the crlf does not exists then the function returns -1 and the return value 
+ #is the bytes that we accumulated  
+ #the newpos will point to the byte next of the crlf. If the buffer
+ #ends with the crlf then the new pos is invaqlid and the calling loop will detect it and break
+ 
+ #check if there is a crlf terminating the chunk size
+ $bytes = $buff.buffer ;
+ $pos = $bytes.FindPattern($CRLF,$cindx) ;
+ if($pos != -1)
+ {
+    #we found the crlf so we can get the size
+    $size   = _hex_data_to_number($bytes,$cindx,$pos-1) ;
+	$newpos = $pos+2;
+    #if($newpos > $buff.count-1) $newpos = $buff.count-1 ;# the buffer ends with the crlf of the size 	
+    return undef() ;  
+ }
+  else
+  {
+    #so the size is broken , save the part for later 
+	$size =  -1 ;
+	#create the buffer
+	$bsz  = $buff.count - $cindx ; #we do not do count-1 because the $cindx points to the first usefull char
+    $tmpb = Bytes.Create($bsz)  ;
+    #copy the bytes
+    $tmpb.CopyEx($bytes,0,$cindx,$buff.count-1) ;	
+	return $tmpb ;
+  }
+}
+
+func _get_chunk_size_cr($buff,$cindx)?Integer
+{
+ #the function returns the size of the chunk but detect as terminating sequence only the cr character
+ $bytes = $buff.buffer ;
+ $pos = $bytes.FindPattern($CR,$cindx) ;
+
+ if($pos != -1)
+ {
+    #we found the cr so we can get the size
+    return _hex_data_to_number($bytes,$cindx,$pos-1) ;  
+ }
+ return 0 ;
+}
+
+func _get_chunk_size_no_term($buff)?Integer
+{
+  #the function returns the size of the chunk but converts all the buffer without look for terminating sequence
+  #we found the cr so we can get the size
+  $ret = _hex_data_to_number($buff.buffer,0,$buff.Length()-1) ;  
+  return $ret ;
+}
+
+func _get_trans_type($hdr_buff,$chunked,$cont_len)?Boolean out->$chunked out->$cont_len
+{
+  #return the transmition type
+  #find the Transfer-Encoding
+  $strval = RawHeaderValue("Transfer-Encoding",$hdr_buff) ;
+  if($strval != "")
+  {
+	if($strval == "chunked") $chunked = true ;
+	else
+	   {
+		 echo("HTTP._receive_load -> System Error. This Version of the HTTP object does not support other Transfer-Encoding than chunked");
+		 return false      ;
+	   }
+   }
+    else
+	{
+		#search for the content length
+		$error = "" ;
+		$strval = RawHeaderValue("Content-Length",$hdr_buff) ;
+		if($strval != "")
+		{
+			$tmpint = $strval.ToInteger($error) ;
+			if($error == "") $cont_len = $tmpint ;
+			else
+			{
+				echo("HTTP._receive_load -> The Content-Length header was found but an erroneous value was set");
+				return false    ;
+			 }
+		 }
+		  else
+		     {
+			    echo("HTTP._receive_load -> Neither the Content-Length or Transfer-Encoding was found in the headers");
+				return false    ;
+			 }
+	}
+	
+	return true ;
+}
+
+func _create_hdr_buff($data_buffers,$tot_size)?:Bytes
+{
+ #concatenate the buffers in the $data_buffers
+ #this is only for use in the _receive load 
+
+ $hdr_buff = Bytes.Create($tot_size);
+ $load_indx = integer(0) ;
+ $indx      = 0 ;
+ loop
+ {
+   if($indx == $data_buffers.Count()) break ;
+   $bc    = $data_buffers[$indx].count  ;
+   $buff  = $data_buffers[$indx].buffer ;
+   $hdr_buff.CopyEx($buff,$load_indx,0,$bc-1) ; ?copy until the end index. 
+   $load_indx = $load_indx + $bc;		
+   inc($indx) ;
+ }
+	  
+ return $hdr_buff ;
+
+}
+
+func _set_state($buf_info,$state)?:Boolean true in success false in error
+{
+  $_cr = 13 ;
+  $_lf = 10 ;
+  $binfo = $buf_info         ;
+  $buffer = $buf_info.buffer ;
+  $blen   = $buf_info.count  ;
+  $end_indx = $blen - 1 ;
+  #check if the buffer is empty
+  if($blen == 0) 
+  {
+   $state = 0 ;
+   return true ;
+  }   
+
+  #check the state 
+  if($state == 3)
+  {
+    #last buffer was terminated by a crlf, check if the first two butes are crlf meaning the end of the headers
+	if($blen==1){if($buffer[0]==$_cr)$state=1;[*a broken crlf pair*]}
+	else
+	   {
+	     # the buffer has atleast 2 bytes , check if they are the crlf pair
+         if(($buffer[0]==$_cr)&&($buffer[1]==$_lf))
+		 {
+          #this is the end of the headers
+          $state = -1 ;
+		  if($blen == 2) $binfo.afterHeader = -2 ;
+		  else 
+		       $binfo.afterHeader = 3 ; #the next byte after the headers 
+		   
+		 }
+
+		 #we do not found any crlf in the top of the buffer , search for the crlfcrlf pattern 
+		 $stindx = 0 ;
+		 $found_on = $buffer.FindPattern($CRLF+$CRLF,$stindx) ;
+		 if($found_on == -1)
+		 {
+		   #we do not found any termination, check the last bytes of the buffer to see the state that we will set
+           if($buffer[$end_indx] == $_lf) $state = 3 ; #the buffer is terminated by a crlf		   
+		   if($buffer[$end_indx] == $_cr)
+		   {
+             #check the previous bytes
+			 if($buffer[$end_indx-1]==$_lf) $state = 2 ; #the buffer is terminated by a broken crlf pair	but another crlf pair was before it	   
+		   }
+		 }
+		  else
+		      {
+			    # we found the termination of the headers
+				 $state = -1 ;
+				 if($blen == 4) $binfo.afterHeader = -2 ;
+				  else 
+				    if(($found_on+4) == $blen) $binfo.afterHeader = -2 ; #the buffer ends with the crlf of the header
+				    else
+					   $binfo.afterHeader = $found_on+4 ; #the next byte after the headers 
+			  }
+		 
+	   }
+  } 
+   else 
+   if($state == 0)
+	{
+	  # the last buffer it was a normal buffer that had as a last character a normal one. 
+	  # search for the crlfcrlf pattern
+	   $stindx = 0 ;
+	   $found_on = $buffer.FindPattern($CRLF+$CRLF,$stindx) ;
+	  
+	  if($found_on == -1)
+	   {
+	     #check the last bytes in the buffer 
+		 if($blen == 1 ) 
+		 {
+		   if($buffer[$end_indx]==$_cr) $state = 1 ; # a broken crlf
+		    else 
+			if($buffer[$end_indx]==$_lf) $state = 3 ; # ends with crlf
+			 else
+			   $state = 0 ;
+		 }
+		  else
+		  {
+		     if($buffer[$end_indx]==$_lf) $state = 3 ; # ends with crlf
+			  else
+				   {
+				     #check if the buffer ends with a cr but another crlf was present
+                     if($buffer[$end_indx]==$_cr)
+					 {
+                       if($buffer[$end_indx-1]==$_lf) $state = 2 ; # a crlf pair and after that a broken crlf
+					 }  
+                      else
+                          $state = 0 ;	#normal character				  
+				   }
+		  }
+	   }
+	    else
+		{
+		  # found! set the state 
+		   $state = -1 ;
+		   if($blen == 4) $binfo.afterHeader = -2 ; #very unlikely this case except in malformed headers
+			  else 
+				   {
+				     if( ($found_on+4) <= ($blen -1) )
+					 $binfo.afterHeader = $found_on+4 ; #the next byte after the headers
+					  else
+					     $binfo.afterHeader = -2 ; # the buffer is ending with the header termination
+				   }					 
+		}
+	} 
+	else
+	 if($state == 1)
+	 {
+        #a broken crlf , we expect an lf character 
+        if($buffer[0]!=$_lf)	
+	    {
+          return false ; # error !
+	    }	   
+
+	    #check if the following two characters are a CRLF
+		if(blen>2)
+		{
+			  if(($buffer[1]!=$_cr)&&($buffer[2]!=$_lf))
+			  {
+				$state = -1 ; # header end
+				 if(blen == 3)
+				 $binfo.afterHeader = -2 ; 
+				  else
+					 $binfo.afterHeader = 3 ; # the byte after the headers 
+			  }
+			  else 
+			   if(blen==2)
+			   {
+				 if($buffer[1]==$_cr)  $state = 2 ; #broken crlf after a crlf
+			   }
+			    else
+				  {
+				    #the buffer has only one character but completes the broken crlf
+					$state = 3 ;
+				  }
+		  
+		}
+		
+		
+	 } 
+	 else
+	  if($state == 2)
+	  {
+         #the previous state is the crlfcr so we want an lf character and we are good to go!
+		 if($buffer[0]!= $_lf ) return false ; # error 
+		 
+		 $state = -1 ; # header end
+		 if(blen == 1)
+		  $binfo.afterHeader = -2 ; 
+		   else
+			$binfo.afterHeader = 1 ; # the byte after the headers 
+		 
+	  }	  
+
+   return true ;
+}
+
+
+
+func _create_buffer()
+{
+  $bytes  = Bytes.Create(1024) ; #create a buffer 1KB 
+  $bytes.FillWithByte(byteFromChar("#"))        ; 
+  return $bytes 			   ;
+}
+
+func _get_protocol($url)
+{
+	$proto  = $url.CopyToChar(0,":") ;  
+    return $proto ;
+}
+
+func _concat_buffs($data_buffers) 
+{
+  #calculate the buffer size
+  $buff_size = 0 ;
+  $indx = 0 ;
+  loop
+  {
+   if($indx == $data_buffers.Count()) break ;
+   $buff_size = $buff_size + $data_buffers[$indx].count ; 
+   inc($indx) ;
+  }
+  
+  #create the buffer
+  $all_bytes = Bytes.Create($buff_size);  
+  #copy the data
+  $load_indx = integer(0) ;
+  $indx      = 0 ;
+  loop
+  {
+   if($indx == $data_buffers.Count()) break ;
+   $bc    = $data_buffers[$indx].count  ;
+   $buff  = $data_buffers[$indx].buffer ;
+   $all_bytes.CopyEx($buff,$load_indx,0,$bc-1) ; ?copy until the end index. 
+   $load_indx = $load_indx + $bc;		
+
+   inc($indx) ;
+  }
+  
+  return $all_bytes ;
+}
+
+func _parse_response($big_buffer,$chunked) ?Bytes returns the load and set the headers in the structures
+{
+   #ok we have to parse the response to get the headers and the load
+    $retBytes = undef(); 
+	#get the first line 
+	$bindx    = 0 ; 
+	$hdr_bt_count = 0 ;	
+	$_status_ = _return_status($big_buffer,$bindx,$hdr_bt_count); # init the hdr_bt_count to the first line bytes size 
+	loop
+	{
+	   $line           = _get_raw_line($big_buffer,$big_buffer.Length(),$bindx) ;
+	   $hdr_bt_count   = $hdr_bt_count+$line.ByteCount();
+	   #keep in mind that the crlf line that is alone is the terminal for the headers 
+	   if($line == $CRLF)
+	   {
+		 #handle load 
+		 if($chunked == true)
+		 {
+		   $retBytes = _handle_chunked_load($big_buffer,$hdr_bt_count) ; # Pass the buffers, the current buffer and from what byte index the copy will start 
+		 }
+		   else
+			  {
+			    $retBytes = _handle_load($big_buffer,$hdr_bt_count) ; # Pass the buffers, the current buffer and from what byte index the copy will start 
+			  }
+			
+			break;
+		  }
+		  
+		  $line.Trim($TRIMCH);
+		  if($line == "")
+		  {
+		    if($bindx == $big_buffer.Length()-1) break ; #the buffer ends here
+		    continue ;
+		  }
+		  #create the header
+		  $parts = $line.Explode(":") ;
+		  $p = $parts[0];
+		  $p.Trim($TRIMCH);;
+		  if($parts.Count() == 1) $respHeaders[$p] = "null" ;
+		   else
+		   {
+			  $p = $parts[1];
+			  $p.Trim($TRIMCH);
+			  $respHeaders[$parts[0]] = $p ;
+		   }
+		  $parts.Free();
+		  if($bindx >= $big_buffer.Length()-1) break ; # this is an error , we do not found the crlfcrlf pattern
+	  }
+
+	
+	return $retBytes ;
+}
+
+
+ 
+ func _handle_load($big_buffer,$hdr_bt_cnt)?:Bytes returns the load in Bytes, form the length of the bytes is the true length of the data  
+ {
+	  # calculate the buffer that we will need to store all the load.
+	  $total_bytes = 0 ;
+	  # subtruct the headers byte count 
+	  $total_bytes = $big_buffer.Length() - $hdr_bt_cnt ;
+      
+	  #create the new buffer 
+	  $load = Bytes.Create($total_bytes);
+	  $load_indx = integer(0) ;
+	  
+	  #now copy the data
+	  $load.CopyEx($big_buffer,0,$hdr_bt_cnt,$big_buffer.Length()-1) ; ?copy until the end. 
+	 
+	  return $load ; 
+ }
+ 
+ 
+func _hex_data_to_number($buffer,$stindx,$endindx)?:Integer
+{
+  #gets the data from $stindx to $endindx and convert them to a positive or 0 integer. 
+  #If the return value is -1 then an error occured
+  #The number is in hex so we will convert it
+  $error = "" ;
+  $val = Bytes.Create(($endindx-$stindx)+4) ; ? guard of 4 bytes my OCD compels meeee
+  $val.FillWithZero();
+  
+  $val.CopyEx($buffer,0,$stindx,$endindx) ;
+  $strval = $val.ToUTF8(-1)  ; # all the bytes in the buffer
+  $val.Free()				 ;
+  $strval.Trim($TRIMCH)      ;
+
+  $vali  = $strval.FromHexToInt($error) ;
+
+  if($error != "") return (0-1) ;
+  return $vali  ;
+}
+ 
+func _handle_chunked_load($big_buffer,$hdr_bytes)?:Bytes returns the load in Bytes form, the length of the bytes is the true length of the data  
+{
+      # the chunked transmition is more difficult to parse. 
+	  # so to make our life easier and the cpu's life harder, we will  
+	  # concatenate the chunks after find them and store their offsets
+
+     #now the very insufficient but easier parsing method
+	 #first go after the header
+	 $bindx = $hdr_bytes ;
+
+     #now we are to the first chunk byte count in the buffer
+	 #calculate the new buffer size and save the offsets
+	 $offsets = List.CreateList() ; #store the ofsets for the chunks as list.start , list.end , list.length
+     $error   = "";
+	 $buff_size = 0 ;
+	 loop
+	 {
+		   if ($bindx >= $big_buffer.Length()-1) break ; #all bytes was accounted for!
+		   #go to the crlf
+		   $endpos = $big_buffer.FindPattern($CRLF,$bindx) ;
+		   if($endpos == -1)
+		   {
+			 echo("HTTP _handle_chunked_load -> Error finding the CRLF pattern");
+			 return "";
+		   }
+		   dec($endpos) ; #last digit  
+		   #copy the numeric value 
+		   $size =  _hex_data_to_number($big_buffer,$bindx,$endpos) ;
+		   if($size == -1)
+		   {
+			 echo("HTTP _handle_chunked_load -> Error converting size to string. Some offset error?");
+			 return undef();
+		   }	   
+		   $bindx = $endpos+3 ; ?after the crlf
+		   $buff_size = $buff_size + $size ;
+		   if($size > 0)
+		   {		   
+			   #save the offsets
+			   $offset = List.CreateList();
+			   $offset.start   = $bindx ; #start of chunk in the buffer
+			   $offset.end    = $bindx + $size-1 ; #end of the chunk in the buffer
+			   $offset.length  = $size ;
+			   $offsets[] 	   = $offset ;
+		   }
+		   #now skip the chunk bytes and the chunks crlf
+		   $bindx = $bindx + $size + 2 ;
+	 }
+
+	 #create the final buffer
+	 $error = "" ;
+     $final_buffer = Bytes.Create($buff_size);	 
+	 $load_indx = 0 ;
+	 $indx = 0 ;
+	 loop
+	 {
+	  if($indx == $offsets.Count()) break ;
+	  $offset = $offsets[$indx] ;
+	  $final_buffer.CopyEx($big_buffer,$load_indx,$offset.start,$offset.end) ; ?copy until the end index. 
+
+	  $load_indx = $load_indx +integer($offset.length-1) ;
+	  inc($indx) ;
+	 }
+	
+     $offsets.Free()      ;
+	 return $final_buffer ;
+	  
+} 
+
+
+func _get_transmition_packet($client,$bytes,$bcount)?Boolean -> $data must be a Bytes object. If the transmision stops the function returns true
+{
+  [*
+   The function will block if the connection stays open. So for the http protocol check the crlf or bytes received if chunked
+   in the caller
+  *]
+    $status = 0 ;
+	loop
+	  { 
+			$recb   = $client.Receive($bytes,$status) ;
+            $bcount = $recb ;			
+			if($recb == -1 ) 
+			{
+			  #some error occured 
+			  return true ;
+			}
+			 else
+				if($recb == 0)
+				{
+				  $status = 0  ; #close the connection no more bytes to receive
+				  return true  ;
+				}
+				
+			 if($status == 0)
+			 {
+			  #connection closed 
+			  break;
+			 }
+
+		}
+
+      return false ;
+} 
+
+func _copy_str_from_bytes($fr_indx,$to_patt,$newpos)? SimpleString ->returns the string between the $fr_indx and the pattern $to_patt
+{
+  $endpos = $bytes.FindPattern($to_patt,$fr_indx) ;
+  if($endpos == -1)
+  {
+	 echo("HTTP copy_str_from_bytes -> Error finding the pattern");
+	 return "";
+  }
+
+  $val = Bytes.Create(($endpos-$fr_indx)+4) ;?FREE THIS. Make it large enough to get the value and add some space for good measure
+  $val.FillWithZero();
+  $val.CopyEx($bytes,0,$fr_indx,$endpos) ;
+  $strval = $val.ToUTF8(-1)           ; # all the bytes in the buffer
+  $strval.Trim($TRIMCH)               ;
+  $val.Free()						  ;
+  return $strval 					  ;
+}
+
+
+func RawHeaderValue($header,$bytes)?:SimpleString -> Returns the value of the header if exists in the buffer , else returns ""
+{
+	$pos = $bytes.FindPattern($header+":",0) ;
+	if($pos != -1)
+	{
+		$pos = $pos + ($header.Length()+1) ; #+1 for the [:]
+		#find the crlf 
+		$endpos = $bytes.FindPattern($LF,$pos) ;
+		if($pos == -1)
+		{
+		   echo("HTTP RawHeaderValue -> Error parsing the headers. The "+$header+" was found but the terminating LF was missing");
+		   return "";
+		}
+
+		$val = Bytes.Create(($endpos-$pos)+4) ;?FREE THIS. Make it large enough to get the value and add some space for good measure
+		$val.FillWithZero();
+		$val.CopyEx($bytes,0,$pos,$endpos) ;
+		$strval = $val.ToUTF8(-1)         ; # all the bytes in the buffer
+		$strval.Trim($TRIMCH)             ;
+		$val.Free()						  ;
+	    return $strval 					  ;
+	    
+	}
+ 
+   return "" ;
+}
+
+ func _get_raw_line($bytes,$bcount,$bindx)?:SimpleString $bytes -> the buffer , $bcount -> the usable bytes oif the buffer $bindx -> the starting point
+ {
+   #the function returns a string from the $bindx until the crlf pair.
+   #If there is not a pair like that , then the function return all the 
+   #bytes until the end
+   #the $bindx will point to the next character after the crlf. Or the last 
+   #character of the buffer
+   #the caller must check for the end of the data
+    $strval = "" ;
+   	$pos = $bytes.FindPattern($CRLF,$bindx) ;
+	if($pos != -1)
+	{
+	   $val = Bytes.Create(($pos - $bindx)+4); # just my OCD , i need more bytes to be sure xD
+	   $val.FillWithZero() ;
+	   $val.CopyEx($bytes,0,$bindx,($pos+1)) ; #copy the crlf too
+	   $strval = $val.ToUTF8(-1)         ; # all the bytes in the buffer   
+	   $t = $strval.ByteCount();
+	   $bindx = $pos+2 ; # next byte
+	   if($bindx > $bcount-1) $bindx = $bcount-1 ;
+	   $val.Free();
+	}
+	 else
+	     $bindx = $bcount-1 ; #end of the data
+   
+    return $strval ;
+ }
+
+
+ func _return_status($buffer,$bindx,$bcount)?:Integer return -1 in internal error the bcount will be set to the byte count if the line
+ {
+   #HTTP/1.1 200 OK
+   $bindx = 0 ; #status is the first line of the first buffer so we will reset this
+   #find the total bytes of the line 
+   $pos    = $buffer.FindPattern($CRLF,$bindx) ;
+   $bcount = $pos + 2 ; ? cast to count from index !
+   #ok now do the parsing
+   $bindx = 0 ; ?reset to start
+   $pos = $buffer.FindPattern(" ",$bindx) ;
+   if($pos != -1)
+   {
+	$bindx = $pos + 1;
+	$pos = $buffer.FindPattern(" ",$bindx) ;
+    if($pos != -1)
+    {
+	   $val = Bytes.Create(($pos - $bindx)+3);
+	   $val.FillWithZero();
+	   $val.CopyEx($buffer,0,$bindx,$pos-1) ;
+	   $strval = $val.ToUTF8(-1)         ; # all the bytes in the buffer
+	   $pos = $buffer.FindPattern($CRLF,$pos) ;
+	   $bindx = $pos+2 ;
+	   $val.Free();
+	   $error = "" ; 
+	   $vali  = $strval.ToInteger($error) ;
+	   if($error != "") return (0-1) ;
+	   return $vali ;
+    } 
+    else return (0-1) ;
+   }
+   else
+      return (0-1) ;
+ }
+
+	
+ }?Class HTTP
+
+
+########################### Functions ##############################
+
+func ConstrFromUrl($url,$host,$query) ?:Boolean in->$url , out->$host , out->$query
+{ 
+	$pos   = $url.FindWordBinary("://",0) ;
+	if($pos == -1) return false ;
+	$pos   = $pos + 3 ;
+	$host  = $url.CopyToChar($pos,"/") ;  
+	$pos   = $url.FindWordBinary("/",$pos);
+	$query = $url.Copy($pos,$url.Length()); # the $url.Length is not a mistake , the function will copy until the end if the index points after the strings characters
+    return true ;
+}
+
+
+
+
+
+
+
+
+
+
