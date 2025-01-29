@@ -1,0 +1,52 @@
+ ### ---- POST EXAMPLE ----- ###
+ include "http.hydra" ;
+
+	$content = `{"type":"test","value":null}`; 
+	$http = Class.HTTP ; 
+	$http.AddHeader("Content-Type","application/json") ;
+	$http.AddHeader("Connection","close") ;
+	$bytes = $http.Post("https://httpbin.org/post" ,$content);
+	$http.Free();
+	echo($bytes.ToUTF8($bytes.Length()));
+
+
+### ---- GET EXAMPLE -----
+
+	#send the request 
+	$http = Class.HTTP ; 
+
+	$http.AddHeader("Connection","close") ;
+	$http.AddHeader("User-Agent","DeusEx Hydra+ http client");
+	$http.AddHeader("Accept","image/jpeg");
+	$bytes = $http.Get("https://file-examples.com/storage/fef09afdeb679921392cb49/2017/10/file_example_JPG_100kB.jpg");
+
+	if($bytes.IsUndef() == true)
+	{
+	  echo("The GET failed");
+	  $http.Free();
+	  return "" ;
+	}
+
+	#save as an jpg image
+	if(fileExists("hydra_test.jpg") == true) emptyFile("hydra_test.jpg") ;
+	$ret = "" ;
+	$file = File.Open("hydra_test.jpg",_write,true,$ret);
+	if($file.IsOpen() == true)
+	{
+	  $file.Write($bytes , $bytes.Length());
+	  $file.Close() ;
+	  echo("The file was saved succesfully!");
+	}
+	 else 
+	    {
+		  echo("The file save failed!");
+		}
+	$bytes.Free();
+	$http.Free();
+	
+	
+	
+	
+	
+	
+	
