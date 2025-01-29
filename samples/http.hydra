@@ -12,8 +12,8 @@
 #.RetRespHeader($name):Simple String -> empty if the header does not exists
 #.RespHeadersJson():Simple String    -> returns in Json form all the headers of the response
 #.ReqHeadersJson():Simple String     -> returns in Json form all the headers of the request
-#.ReqHeadersClear()					 -> Empties the headers
-#.RespHeadersClear()				 -> Empties the headers
+#.ReqHeadersClear()		     -> Empties the headers
+#.RespHeadersClear()		     -> Empties the headers
 #.Get($url):Bytes                    -> returns the response from the get request as bytes or undef on error
 #.Post($url,$content) : Bytes        -> returns the response from the Post request as bytes or undef on error
 #.GetStatus(): Integer               -> returns the status of the request. Initialized as 0 
@@ -26,8 +26,6 @@
 #
 ####Functions#################################### 
 #ConstrFromUrl(in->$url,out->host,out->query):Boolean -> break the url to the host and the query parts. 
-#Supports only https, return false if the url is malformed or true in success
-#
 #################################################
 
 
