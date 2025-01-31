@@ -32,7 +32,7 @@
  */
 
 
-#define HDR_JSON_HASH_BUCKETS 5
+#define HDR_JSON_HASH_BUCKETS 1 /* the more the buckets the more the memory consumption*/ 
 
 bool hdr_json_handle_object(PDX_HASH_TABLE obj, char **str,PDX_STRING error) ;
 bool hdr_json_handle_array(PDX_LIST arr, char **str,PDX_STRING error)        ;
@@ -935,6 +935,7 @@ PDX_LIST hdrParseJsonString(PDX_STRING json,PDX_STRING error)
 	 else
 	 {
 	  error = dx_string_createU(error,"The string is not a valid JSON string. A valid JSON string is encapsulated by {} or []") ;
+	  hdr_var_list_free(root);
 	  return NULL ;
 	 }
 

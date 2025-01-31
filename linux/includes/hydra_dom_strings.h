@@ -2527,9 +2527,7 @@ bool hdr_domStringInt(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHDR_VAR
 			DXLONG64 intval = 0 ;
 
 			bool error ;
-			*result = hdr_var_create(NULL, "", hvf_temporary, NULL);
-			(*result)->type = hvt_integer;
-			(*result)->integer = intval;
+
 
 			intval = dx_StringToInt((PDX_STRING)for_var->obj,&error) ;
 			if(error == true) 
@@ -3288,10 +3286,6 @@ bool hdr_domStringToJson(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_V
    PDX_LIST root = hdrParseJsonString(str,error) ;
    if(error->len != 0) 
    {
-	   *result   = hdr_var_create(root,"",hvf_temporary_ref,NULL) ;
-       (*result)->type = hvt_list ;
-	   /*free all the variables in the variable*/
-	   hdr_var_free(*result);
 	   /*create an empty list and return it*/
 	   root = dx_list_create_list() ;
 	   *result   = hdr_var_create(root,"",hvf_temporary_ref,NULL) ;

@@ -1619,7 +1619,9 @@ bool hdr_all_set_undef(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_VAR
    if((for_var->type == hvt_simple_string)||(for_var->type == hvt_simple_string_bcktck)||(for_var->type == hvt_unicode_string))
 	  dx_string_free((PDX_STRING)for_var->obj);
 	
-   hdr_var_release_obj(for_var)  ;
+   
+   /*hdr_var_release_obj(for_var)  ;   -- replace this to not interfere with the memory leak detection system 2025-01-31 */
+   for_var->obj  = NULL ;
    for_var->type = hvt_undefined ;
 
     success:

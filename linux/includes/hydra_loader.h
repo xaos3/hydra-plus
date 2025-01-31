@@ -710,20 +710,23 @@ PHDR_LOADER_STATE hdr_loader_state_restore(PHDR_LOADER loader, PHDR_LOADER_STATE
  create the keywords that we will need for the Hydra+ in PDX_STRING form
 */
 
-PDX_STRING hdr_k_include = NULL;
-/*keywords of the syntax for the Hydra+.*/
+PDX_STRING hdr_k_include    = NULL ; 
+PDX_STRING hdr_k_memdetect  = NULL ;
+/*keywords of the syntax for the Hydra+. THIS IS OBSOLETE AND NOT ACCURATE ANYMORE!*/
 /*include,if,else,switch,loop,exit,return,break,continue,func,true,false,pause,async,obj,warnings*/
 char* keywords = "includeifelseswitchloopexitreturnbreakcontinuefunctruefalsepauseasyncobjdwarnings";
 
 void hdr_loader_initialize()
 {
-    hdr_k_include = dx_string_createU(NULL, "include") ;
+    hdr_k_include   = dx_string_createU(NULL, "include") ;
+    hdr_k_memdetect = dx_string_createU(NULL, "show_memory") ;
     return ;
 }
 
 void hdr_loader_uninitialize()
 {
-    dx_string_free(hdr_k_include);
+    dx_string_free(hdr_k_include)   ;
+    dx_string_free(hdr_k_memdetect) ;
     return ;
 }
 /*****************************************************/
@@ -829,8 +832,20 @@ PHDR_LOADER hdr_loader_free(PHDR_LOADER loader)
 
     hdr_incl_script_free(loader->main_script);
 
-    hdr_block_free(loader->code)  ;
-
+    /*
+     There is a specific problem with the block destruction
+     where the script is terminating. If there is in the script a variable that
+     has a complex type, and this variable is assigned to a list ,
+     and then the list is freed , then the the script variable lest being .Release()
+     or reassign , will point to the deallocated object.
+     So for now we will ommit the block destruction until I have the time 
+     to create a more elegant solution. This will become a serius problem
+     only if the Hydra+ supports running another Hydra+ object in a script.
+     For now all is good, because the app will release all itsa memory to the OS.
+    */
+   /***********************************/
+    //hdr_block_free(loader->code)  ;
+  /************************************/
     hdr_loader_uninitialize();
     free(loader);
 
@@ -1033,8 +1048,20 @@ bool hdr_loader_load_include_files(PHDR_LOADER loader)
                                 }
                                 else
                                 {
+                                    /*
+                                      support for the special loader token hdr_k_memdetect
+                                      is a loader directive, so i will set it here for convinience  
+                                    */
+                                    enum dx_compare_res res = dx_string_native_compare(entity->entity, hdr_k_memdetect);
+                                    if(res == dx_equal)
+                                    {
+                                        /*set the flag for the hydra to create the _LOGGER */
+                                        if(_ON_MEMORY_DETECT == false) _ON_MEMORY_DETECT = true ; 
+                                    }
+                                    /*continue , i will not write a handler for this xD */
+
                                     /*we have the entity , check if its the [include] instruction */
-                                    enum dx_compare_res res = dx_string_native_compare(entity->entity, hdr_k_include);
+                                    res = dx_string_native_compare(entity->entity, hdr_k_include);
                                     if ((res != dx_equal) && (file_pending == false))
                                     {
                                         /*exit , no more valid includes ! */
@@ -1042,7 +1069,7 @@ bool hdr_loader_load_include_files(PHDR_LOADER loader)
                                         hdr_entity_free(entity);
                                         if (instr != NULL) free(instr);
                                         return true;
-                                        }
+                                    }
                                     else
                                     if ((res == dx_equal) && (file_pending == true))
                                     {
@@ -1060,6 +1087,7 @@ bool hdr_loader_load_include_files(PHDR_LOADER loader)
                                         file_pending = true;
                                         hdr_entity_free(entity);
                                     }
+
                                     if ((res != dx_equal) && (file_pending == true))
                                     {
                                         /*first check if the entity is a hydra+ string*/
@@ -1127,6 +1155,7 @@ bool hdr_loader_load_include_files(PHDR_LOADER loader)
                                             }
 
                                     }
+                                   
                                        
                                 }
                     } //retrieve entities

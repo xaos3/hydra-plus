@@ -1509,6 +1509,11 @@ enum exec_state hdr_inter_handle_single_command(PHDR_INTERPRETER inter, PHDR_COM
 		return hdr_cmd_time_point(inter) ;
 	}
 
+	if (hdr_inter_fast_str(token->ID, hdr_k_memdetect->stringa, 11) == true)
+	{
+		return  exec_state_ok ; /*no operation, this has been handled in the loader*/
+	}
+
     if (hdr_inter_fast_str(token->ID, "show_version", 12) == true)
 	{
 		return hdr_cmd_version(inter) ;

@@ -50,6 +50,8 @@ typedef struct hydra
     PHDR_THREAD_LIST    threads      ; /*the threads the script has created*/
 
     PHDR_POINTERS      finalizer     ; /*this object will be initialized before the main block destruction to avoid redisposed already disposed pointers */
+     
+   PHDR_POINTERS_LOGGER logger       ; /*this object it will used to the special debugging state that will detect memory leaks*/
 
 } *PHYDRA;
 
@@ -94,6 +96,7 @@ PHYDRA HydraCreate(char *exepath,PHDR_BLOCK block)
     hydra->loader           = hdr_loader_create(exepath,block)      ;
     hydra->threads          = hdr_thread_list_create()              ;
     hydra->finalizer        = NULL                                  ;
+    hydra->logger           = NULL                                  ;
 
     if (hydra->defines == NULL)
     {
@@ -134,8 +137,16 @@ PHYDRA HydraFree(PHYDRA hydra)
     hydra->loader           = hdr_loader_free(hydra->loader)                    ;
     /*send signal to all the threads to terminate and wait*/
     hydra->threads          = hdr_thread_list_free(hydra->threads)              ;
-    hydra->finalizer = hdr_mem_pointers_free(hydra->finalizer) ;
+    hydra->finalizer        = hdr_mem_pointers_free(hydra->finalizer) ;
     _POINTERS = NULL ;
+    
+     /*check if the logger is active*/
+    if(hydra->logger != NULL)
+    {
+      /*Print all the variables that are not freed*/
+      hdr_mem_pointers_logger_print(hydra->logger) ;
+    }
+    
     free(hydra);
     /*check and cleanup the network*/
 #ifdef _WIN32
@@ -143,6 +154,7 @@ PHYDRA HydraFree(PHYDRA hydra)
 #endif
     if(IS_WOLF_INIT == true) wolfSSL_Cleanup();
     return NULL ;
+
 }
 
 bool HydraLoadScript(PHYDRA hydra , char *mainscript)
@@ -182,6 +194,13 @@ int HydraCreateCode(PHYDRA hydra)
 enum exec_state  HydraExecute(PHYDRA hydra)
 {
     if (hydra == NULL) return ERROR_HYDRA_IS_NULL;
+    /*set the memory logger*/
+    if(_ON_MEMORY_DETECT == true )
+    {
+      hydra->logger = hdr_mem_pointers_Logger_create() ;
+      _LOGGER       = hydra->logger ;  
+
+    }
     /*start the interpreter and the code execution*/
     if(hdr_interpreter_init(hydra->interpreter) == false) return exec_state_error; /*call this to setup the current block and the current instruction*/
    	/*set the parameters list*/

@@ -10,8 +10,9 @@
 #include "hydra_mman.h"
 /***********************/
 
-PHDR_POINTERS _POINTERS = NULL ;
-
+PHDR_POINTERS        _POINTERS  = NULL ;
+PHDR_POINTERS_LOGGER _LOGGER    = NULL ;
+bool                 _ON_MEMORY_DETECT ;
 #define HYDRA_STRUCTS
 
 /*
@@ -420,6 +421,17 @@ The function checks the type to call the right
 deallocation function for the obj.
 Returns NULL
 */
+
+bool __hdr_is_complex_type(PHDR_VAR var)
+{
+	if((var->obj != NULL)&&(var->type !=hvt_simple_string)&&(var->type !=hvt_simple_string_bcktck)&&(var->type !=hvt_unicode_string))
+	{
+		return true ;
+	}
+
+	return false; 
+}
+
 PHDR_VAR hdr_var_free(PHDR_VAR var)
 {
 	if (var == NULL) return NULL;
@@ -427,7 +439,10 @@ PHDR_VAR hdr_var_free(PHDR_VAR var)
 
 	//if(var->is_ref == false)
 	//{
-		/*a small memory managment to avoid access violation when try to free already freed memory*/\
+		/*
+		  a small memory managment to avoid access violation when try to free already freed memory
+		  in the finalization of the Hydra+ 
+		*/
 		if(_POINTERS != NULL)
 		{
 			if((var->obj != NULL)&&(var->type !=hvt_simple_string)&&(var->type !=hvt_simple_string_bcktck)&&(var->type !=hvt_unicode_string))
@@ -438,7 +453,14 @@ PHDR_VAR hdr_var_free(PHDR_VAR var)
 			}
 		}
 		/***********/
-
+		/******************** Detect memory Leaks **********************/
+	    if(_LOGGER != NULL)
+		{
+		  if(__hdr_is_complex_type(var) == true)
+		  {
+		    hdr_mem_pointers_logger_remove(_LOGGER,var->obj) ;
+		  }
+		}
 		switch (var->type)
 		{
 			case hvt_undefined			: 
@@ -501,12 +523,47 @@ PHDR_VAR hdr_var_free(PHDR_VAR var)
 
 static inline PHDR_VAR hdr_var_set_obj(PHDR_VAR var , void *obj)
 {
-  var->obj  = obj  ;
-  return var ;
+    var->obj  = obj  ;
+
+	/*memory leaks detection!*/
+	if(_LOGGER != NULL)
+	{
+		if(__hdr_is_complex_type(var) == true)
+		{
+          /*
+		   We will support variable assigments to clarify better the situation.
+		   for example to return accurate info for the type of : 
+		   $var = List.CreateList();
+		   $var[] =List.CreateList();
+		   $var2 = $var[0] ;
+		   $var[0].Release();
+		   $var.Free();
+
+		   The $var2 remains allocated BUT the system will return Variable -> 0 
+		   because it has the creation name that was the 0 index of the list.
+		   We want to print the [$var2] as variable name 
+
+		  */ 
+ 
+          /*try to remove the variable and re enter it*/
+		  hdr_mem_pointers_logger_remove(_LOGGER,obj) ;
+		  hdr_mem_pointers_logger_add(_LOGGER,var->name->stringa,obj) ;
+		}
+	}
+
+   return var ;
 }
 
 static inline PHDR_VAR hdr_var_release_obj(PHDR_VAR var)
 {
+	/*Memory leaks detection! If the variable is released then we have no way to know if its intentional !*/
+	if(_LOGGER != NULL)
+	{
+		if(__hdr_is_complex_type(var) == true)
+		{
+		  hdr_mem_pointers_logger_remove(_LOGGER,var->obj) ;
+		}
+	}
 	 var->obj = NULL  ;
 	 return var		  ;
 }
@@ -1020,7 +1077,7 @@ void hdr_complex_token_list_copy(PHDR_TOKENS_LIST dest ,PHDR_TOKENS_LIST source)
 /*
  The expression stores an Hydra language expression that can be one of the following types :
  string concatenation       : The expression comprices from tokens that resulting in string types for concatenation
- algebric calculation       : The expression comprices from tokens that resulting in numbers for calculation
+ algebraic calculation      : The expression comprices from tokens that resulting in numbers for calculation
  boolean expression			: The expression is a boolean expression with || && operators
  arbitrary variable return  : The expression resulting to a variable other type than arithmetic or string.
 
@@ -1041,7 +1098,7 @@ void hdr_complex_token_list_copy(PHDR_TOKENS_LIST dest ,PHDR_TOKENS_LIST source)
  and throw an error.
 
  The harder part is the expression analyzing to sub expressions and tokens.
- A tricky part is the arithmetic (algebric) calculations. As the operators
+ A tricky part is the arithmetic (algebraic) calculations. As the operators
  priority are not the same we have to calculate based to they priorities.
 
  Priorities : [()] [^] [multiplication , division] [+-]
@@ -2018,29 +2075,29 @@ char* hdr_error_code_to_str(int error_code)
 		break;
 	case HDR_ERROR_EXPR_STR_NULL:				    return "Syntax Error. An expression expected but NULL returned.";
 		break;
-	case ALG_EXPR_NULL:								return "Internal Error. The algebric expression is NULL.";
+	case ALG_EXPR_NULL:								return "Internal Error. The algebraic expression is NULL.";
 		break;
-	case ALG_EXPR_EMPTY:							return "Syntax Error. The algebric expression is empty.";
+	case ALG_EXPR_EMPTY:							return "Syntax Error. The algebraic expression is empty.";
 		break;
-	case ALG_TOO_LONG_OPERANT:						return "Syntax Error. An operand in the expression is too long (on : Algebric expression).";
+	case ALG_TOO_LONG_OPERANT:						return "Syntax Error. An operand in the expression is too long (on : Algebraic expression).";
 		break;
-	case ALG_LIST_NULL:								return "Internal Error. The list returned as NULL (on : Algebric expression).";
+	case ALG_LIST_NULL:								return "Internal Error. The list returned as NULL (on : Algebraic expression).";
 		break;
-	case ALG_MISSPLACED_OPERATOR:					return "Syntax Error. Missplaced operator in the expression (on : Algebric expression).";
+	case ALG_MISSPLACED_OPERATOR:					return "Syntax Error. Missplaced operator in the expression (on : Algebraic expression).";
 		break;
-	case ALG_SYNTAX_ERROR:							return "Syntax Error. The expression is malformed (on : Algebric expression).";
+	case ALG_SYNTAX_ERROR:							return "Syntax Error. The expression is malformed (on : Algebraic expression).";
 		break;
-	case ALG_OBJ_NULL:								return "Internal Error. The object returned as NULL (on : Algebric expression).";
+	case ALG_OBJ_NULL:								return "Internal Error. The object returned as NULL (on : Algebraic expression).";
 		break;
-	case ALG_MEM_ERROR:								return "Internal Error. malloc() failed. (on : Algebric expression).";
+	case ALG_MEM_ERROR:								return "Internal Error. malloc() failed. (on : Algebraic expression).";
 		break;
-	case ALG_PART_MUST_EMPTY:						return "Syntax Error. Malformed expression. Illegal token in front of a '()' (on : Algebric expression).";
+	case ALG_PART_MUST_EMPTY:						return "Syntax Error. Malformed expression. Illegal token in front of a '()' (on : Algebraic expression).";
 		break;
-	case ALG_SECTION_INVALID:						return "Syntax Error. Malformed expression. Some parenthesis are not correctly paired (on : Algebric expression).";
+	case ALG_SECTION_INVALID:						return "Syntax Error. Malformed expression. Some parenthesis are not correctly paired (on : Algebraic expression).";
 		break;
-	case ALG_NODES_NOT_MERGED:						return "Internal Error. Nodes where not merged (on : Algebric expression)";
+	case ALG_NODES_NOT_MERGED:						return "Internal Error. Nodes where not merged (on : Algebraic expression)";
 		break;
-	case ALG_BRACKETS_INVALID:						return "Syntax Error. Some brackets are not correctly paired (on : Algebric expression).";
+	case ALG_BRACKETS_INVALID:						return "Syntax Error. Some brackets are not correctly paired (on : Algebraic expression).";
 		break;
 	case HDR_ERROR_EMPTY_INDEX_BEFORE_CURRENT:		return "Syntax Error. Another index cannot follow after an empty index. E.g '$var[][$indx]'.";
 		break;

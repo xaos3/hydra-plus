@@ -2438,7 +2438,6 @@ enum exec_state hdr_inter_resolve_and_set(PHDR_INTERPRETER inter, PHDR_VAR var, 
 			if ((var->type != hvt_undefined) && (var->type != result->type)&&
 				(hdr_inter_var_gen_type(var) != hdr_inter_var_gen_type(result)))
 			{
-				/*OBSOLETE COMMENT :  cannot set a complex variable type to undefined with the [undef()]*/
 				printf("The expression is evaluated as a different type than the variable %s. Types : [%s] != [%s].\n",
 					var->name->stringa,hdr_inter_return_variable_type(var->type),hdr_inter_return_variable_type(result->type));
 				return exec_state_error;
