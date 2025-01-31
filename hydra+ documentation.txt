@@ -777,7 +777,7 @@ you can set only another two byte character to be replaced.
 For example :
 
 $string = "hello" ;
-$string[0] = "H"  ; -> valid 1 byte character 
+$string[0] = "G"  ; -> valid 1 byte character 
 $string[0] = "Φ"  ; -> invalid 2 bytes character
  
 For arbitrary replacements see the appropriate (and more flexible) functions of the [String] domain.
@@ -855,7 +855,7 @@ For the [var_expand] the variables are NOT resolved and the string is returned w
 of the string. 
 
 .Concat($string) 
-The function adds the $string to the caller. The function alters the caller and does not return a new string.
+The function adds the $string to the caller. The function altehrs the caller and does not return a new string.
 This function is valid only for the [concat] or [expand] string types, the simple strings can be concated by the [+] operator.
 
 .Replace($word,$replace_with,$from_index,$replace_all)
@@ -1141,7 +1141,7 @@ This function is mandatory to be called when the list is done with its usefullne
 because if the script is not a short lived one, the memory will remain allocated to the script. 
 BEWARE!!! When you free a list , all the lists Objects are being freed. If you want to NOT 
 free the objects in the list, you have first to manually .Release the variables e.generally
-list[$].Release();
+list[$indx].Release();
 .
 . 
 .
@@ -1794,7 +1794,7 @@ $some_var.IsUndef() : Boolean
 Returns true if the variable is undefined.
 
 $some_var.Release()
-Sets the variable to undefined. It does not release its object memory, except if it is a [Simple String]. 
+Sets the variable to undefined and its internal object to null. It does not release its object memory, except if it is a [Simple String]. 
 
 undef():Variable (as undefined)
 Returns an undefined variable. Example : $unknown_var = undef();
@@ -1804,7 +1804,8 @@ This is used mainly to return a value from a function that determines that the f
 $some_var.Type(): Variable Type (Integer)
 The function returns the variable type.
 Types
-_Undefined,_Pointer,_Real,_Integer,_Boolean,_SimpleList,_Stringlist,_StringlistSort,_IntListSort,_RealListSort,	_FastList,_Http,_Database,_Dataset,_DataRow,_TcpClient,_TcpServer,_SSLClient,_SSLServer,_Bytes,_File,_SimpleStr,
+_Undefined,_Pointer,_Real,_Integer,_Boolean,_SimpleList,_Stringlist,_StringlistSort,_IntListSort,_RealListSort,	_FastList,
+_Http,_Database,_Dataset,_DataRow,_TcpClient,_TcpServer,_SSLClient,_SSLServer,_Bytes,_File,_SimpleStr,
 _SimpleStrBck,_Concat,_VarExpand,_Unicode,_CodePoint,_Object	
 
 Variable.TypeAsStr(): Variable Type (String)
@@ -1837,6 +1838,15 @@ passed from the start of the interpreter. This is used mainly for benchmarking.
 
 show_warnings
 This directive forces the interpreter to show the warnings that are produced. 
+
+show_memory
+This is a loader directive used for debugging. When this directive is present in the script (better after the include directive)
+it will enable the variable logging. This will make the scripts to run slower, but after the script
+termination it will output all the variables that their memory was not freed at the end of 
+the execution. This is very usefull to catch memory leaks. This functionality is somehow
+limited , as it does not tell you when this variable was created and in what line ,
+but if your code is well structured and the variables well defined its not very hard 
+to locate the problematic ones.
 
 show_version
 The command prints the Hydra+ current version.
