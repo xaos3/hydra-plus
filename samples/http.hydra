@@ -12,8 +12,8 @@
 #.RetRespHeader($name):Simple String -> empty if the header does not exists
 #.RespHeadersJson():Simple String    -> returns in Json form all the headers of the response
 #.ReqHeadersJson():Simple String     -> returns in Json form all the headers of the request
-#.ReqHeadersClear()		     -> Empties the headers
-#.RespHeadersClear()		     -> Empties the headers
+#.ReqHeadersClear()					 -> Empties the headers
+#.RespHeadersClear()				 -> Empties the headers
 #.Get($url):Bytes                    -> returns the response from the get request as bytes or undef on error
 #.Post($url,$content) : Bytes        -> returns the response from the Post request as bytes or undef on error
 #.GetStatus(): Integer               -> returns the status of the request. Initialized as 0 
@@ -26,8 +26,11 @@
 #
 ####Functions#################################### 
 #ConstrFromUrl(in->$url,out->host,out->query):Boolean -> break the url to the host and the query parts. 
+#Supports only https, return false if the url is malformed or true in success
+#
 #################################################
 
+$__DUMP_FILE = "D:\MyProjects\WORK\PROJECTS\EshopExporters\woocommere\buffers.log";
 
 obj HTTP
 {
@@ -118,7 +121,7 @@ obj HTTP
 # The response to a large byte buffer that will return to the caller		        #
 #####################################################################################
 
-
+emptyFile($__DUMP_FILE);
 
 $post_req = String.Create(`POST {$query} HTTP/1.1
 Host: {$host}
@@ -216,6 +219,7 @@ Host: {$host}
 	     $bytes.Free();
 	     break ;
 	   }
+
 	   $buf_info = List.CreateList();
        $data_buffers[]  = $buf_info  ;
 	   $buf_info.buffer = $bytes     ;
@@ -331,6 +335,7 @@ func _get_single_trans($bconn,$data_buffers,$cont_len)?:Boolean
 	   $bytes.Free();
 	   break ;
 	 }
+
 	 $buf_info = List.CreateList() ;
      $data_buffers[]  = $buf_info  ;
 	 $buf_info.buffer = $bytes     ;
@@ -431,6 +436,7 @@ func _get_chunk_trans($bconn,$data_buffers)?Boolean
 	   $bytes.Free();
 	   break ;
 	 }
+
 	 #in some connections the server send a 0crlf chunk that 
 	 #follows a normal chunk. I do not think that this is in the standard
 	 #but i will handle it, by ommit it alltogether
@@ -493,6 +499,7 @@ func _set_chunk_state($buff,$indx,$_half_size,$state,$chunk_remain)
 	#if an error occurs the returned value is [error]
 	$_cr = 13 ;
 	$_lf = 10 ;
+
 	switch($state)
 	{
 		"after_ch" : #after the chunks bytes , we need the terminating crlf
@@ -524,10 +531,10 @@ func _set_chunk_state($buff,$indx,$_half_size,$state,$chunk_remain)
 				  
 		 "on_sz"  : #the index is on the first byte of the chunk size
 				  {
-                     #try to retrieve he size
+                     #try to retrieve the size
 					 $size   = 0 ; 
 					 $newpos = 0 ;
-					 
+				 
 	                 $_half_size = _get_chunk_size($buff,$indx,$size,$newpos) ; #return the part of the size if the sdize is broken 			 
 					 $indx = $newpos ; # in every case the indx has to be updated
 	
@@ -556,6 +563,7 @@ func _set_chunk_state($buff,$indx,$_half_size,$state,$chunk_remain)
                      #now this can be tricky too , as if we are exeptional unlucky the size can be in a more than 2 buffers.
 					 #why something to send byte by byte ? Who knows.
 					 #check if the last byte of the $_half_size is cr , then we need only the LF 
+
 					 $lastb = $_half_size.Length()-1 ; 
 					 if($_half_size[$lastb] == $_cr)
 					 {
@@ -649,6 +657,7 @@ func _set_chunk_state($buff,$indx,$_half_size,$state,$chunk_remain)
 						  {
 							inc($indx) ; #next byte
 							$state = "after_ch" ;
+							break;
 						  }
 							else inc($indx) ;
 					 }
@@ -734,7 +743,6 @@ func _is_crlf_br($buff,$indx)?Integer 0 -> is broken. 1 -> is not broken. -1 -> 
    if($bytes[$indx]==13) return 0; else return (0-1) ;
   }
 
-  echo("@@@@@@@@@@@$indx : "+$indx.ToString(0));
   if(($bytes[$indx]==13)&&($bytes[$indx+1]==10)) return 1 ;
   
   $db1 = $bytes[$indx] ;
@@ -1214,7 +1222,7 @@ func _handle_chunked_load($big_buffer,$hdr_bytes)?:Bytes returns the load in Byt
 	  $offset = $offsets[$indx] ;
 	  $final_buffer.CopyEx($big_buffer,$load_indx,$offset.start,$offset.end) ; ?copy until the end index. 
 
-	  $load_indx = $load_indx +integer($offset.length-1) ;
+	  $load_indx = $load_indx +integer($offset.length) ;
 	  inc($indx) ;
 	 }
 	
@@ -1370,7 +1378,7 @@ func RawHeaderValue($header,$bytes)?:SimpleString -> Returns the value of the he
  }?Class HTTP
 
 
-########################### Functions ##############################
+########################### Utility Functions ##############################
 
 func ConstrFromUrl($url,$host,$query) ?:Boolean in->$url , out->$host , out->$query
 { 
@@ -1385,7 +1393,23 @@ func ConstrFromUrl($url,$host,$query) ?:Boolean in->$url , out->$host , out->$qu
 
 
 
+########################### Debug Functions ###################################
 
+func DumpBuffer($bytes,$count,$fname)
+{
+
+  $ret = "" ;
+  $f = File.Open($fname,_write,true,$ret) ;
+  if($f.IsOpen() == false)
+  {
+    echo("Error in DumpBuffer -> "+$ret);
+	return ;
+  }
+   
+  $f.Write($bytes,$count);
+  $f.Close(); 
+
+}
 
 
 
