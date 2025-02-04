@@ -1,6 +1,10 @@
 
 #define HYDRA_COMPILE
 
+void _hdr_dummy()
+{
+  /*to use with the dladdr*/
+}
 
 bool hdr_compile_include_files(PHDR_LOADER loader,PDX_STRINGLIST include_list,char **main_indx)
 {
@@ -225,6 +229,279 @@ bool hdr_compile_include_files(PHDR_LOADER loader,PDX_STRINGLIST include_list,ch
     *main_indx = indx ;
     return true;
 } /*func end*/
+
+
+DXLONG64 hdr_is_self_executed()
+{
+    /* 
+     The function check the last 8 bytes of the hydra executable. 
+     if the 8 bytes are the [HYDRAEXE] then the hydra has an embedded
+     script to run and does not run any other script.
+     Return -1 in error 0 if hydra+ its not self executed or 1 if its is
+    */
+
+    /*get the filename of this executable*/
+#ifdef _WIN32
+
+    /*paths larger than 8190 characters is not supported*/
+    LPWSTR fname = (LPWSTR)malloc(8192*sizeof(WCHAR));
+    DWORD ret = GetModuleFileName(NULL,fname,8192);
+    if(ret == 8192) 
+    {
+        free(fname);
+        printf("***Fatal Error. The GetModuleFileName failed.\n");
+        return -1 ;
+    }
+    /*open the file and read the last 8 bytes*/
+    HANDLE hdrf = CreateFile(fname,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL ,NULL);
+    if(hdrf == INVALID_HANDLE_VALUE)
+    {
+        free(fname);
+        printf("***Fatal Error. The CreateFile failed.\n");
+        return -1 ;
+    }
+
+    /*read the bytes*/
+    char sign[9] ;
+    sign[8] = 0 ;
+    DWORD btc = 0 ;
+    SetFilePointer(hdrf,-8,NULL,FILE_END);
+   if(ReadFile(hdrf,sign,8,&btc,NULL) == false) 
+   {
+     CloseHandle(hdrf) ;
+     free(fname);
+     return -1 ;
+   }
+    CloseHandle(hdrf) ;
+    free(fname);
+    /*check the bytes*/
+    if((sign[0]=='H')&&(sign[1]=='Y')&&(sign[2]=='D')&&(sign[3]=='R')&&
+        (sign[4]=='A')&&(sign[5]=='E')&&(sign[6]=='X')&&(sign[7]=='E')) return 1 ;
+
+#endif
+
+#ifdef _LINUX
+  
+  Dl_info  dlinfo ; 
+  if (dladdr(_hdr_dummy, &dlinfo) == 0)
+  {
+      printf("***Fatal Error. hdr_is_self_executed -> The dladdr failed. Error : %s\n",dlerror());
+      return -1 ;
+  }
+  
+  char *fname = dlinfo.dli_fname;
+  
+  FILE *hdrf = fopen(fname,"rb"); 
+  if(hdrf == NULL)
+  {
+      printf("***Fatal Error. The fopen() failed.\n");
+      return -1 ;
+  }
+
+  /*read the last 8 bytes*/
+  char sign[9] ;
+  sign[8] = 0  ;
+  fseek(hdrf,-8,SEEK_END) ;
+  fread(sign,8,1,hdrf)    ;
+  fclose(hdrf);
+
+   if((sign[0]=='H')&&(sign[1]=='Y')&&(sign[2]=='D')&&(sign[3]=='R')&&
+        (sign[4]=='A')&&(sign[5]=='E')&&(sign[6]=='X')&&(sign[7]=='E')) return 1 ;
+
+#endif
+
+
+    return 0 ;/*is not a self executable script*/
+}
+
+
+FILE *hdr_open_self()
+{
+    /* 
+     The function opens this executable file and returns it as an open file 
+    */
+
+    /*get the filename of this executable*/
+#ifdef _WIN32
+
+    /*paths larger than 8190 characters is not supported*/
+    LPWSTR fname = (LPWSTR)malloc(8192*sizeof(WCHAR));
+    DWORD ret = GetModuleFileName(NULL,fname,8192);
+    if(ret == 8192) 
+    {
+        free(fname);
+        printf("***Fatal Error. hdr_open_self() -> The GetModuleFileName failed.\n");
+        return NULL ;
+    }
+
+    PDX_STRING str = dx_string_create_bW(fname) ;
+    PDX_STRING ufn = dx_string_convertU(str) ;
+    FILE *hdrf = fopen(ufn->stringa,"rb"); 
+    dx_string_free(str) ;
+    dx_string_free(ufn) ;
+    return hdrf ;
+#endif
+
+#ifdef _LINUX
+  
+  Dl_info  dlinfo ; 
+  if (dladdr(_hdr_dummy, &dlinfo) == 0)  
+  {
+      printf("***Fatal Error. hdr_open_self() -> The hdr_open_self() -> dladdr failed. Error : %s\n",dlerror());
+      return NULL ;
+  }
+  
+  char *fname = dlinfo.dli_fname;
+
+  FILE *hdrf = fopen(fname,"rb"); 
+  return hdrf ;
+ 
+#endif
+
+}
+
+
+uint32_t hdr_decode_char_to_uint32(unsigned char buffer[4])
+{
+    return ((uint32_t)buffer[3] << 24) | ((uint32_t)buffer[2] << 16) | ((uint32_t)buffer[1] << 8) | (uint32_t)buffer[0];
+}
+
+PHDR_RAW_BUF hdr_load_stored_script()
+{
+ /*
+   the function read the uint32_t value that begins from the filesize -12
+   this is the script size in bytes.
+   Then reads this bytes and convert them to a PHDR_RAW_BUF
+ */
+
+ FILE *f = hdr_open_self();
+ uint32_t ssize = 0       ;
+ fseek(f,-12,SEEK_END)    ;
+ char intbytes[4] ;
+ fread(intbytes,4,1,f);
+
+ ssize = hdr_decode_char_to_uint32(intbytes);
+
+ if(ssize == 0 ) return NULL ;
+
+ PHDR_RAW_BUF rawb = (PHDR_RAW_BUF)malloc(sizeof(struct hdr_raw_buf)) ;
+ rawb->buf = (char*)malloc(ssize+1) ;
+ rawb->buf[ssize] = 0     ;
+ rawb->len        = ssize ;
+ /*go to the position*/
+ long tsize = ssize ;
+ tsize = 0 - tsize ;
+ fseek(f,(-12)+tsize,SEEK_END)    ;
+ fread(rawb->buf,ssize,1,f);    
+ fclose(f) ;
+
+ return rawb ;
+}
+
+bool hdr_create_executable(char *script_name)
+{
+    /*
+     the function copy this executable and adds the script (compiled and obfuscated) to the 
+     new copy. Adds the script size and the signature HYDRAEXE in the end.
+    */
+
+     FILE *f = hdr_open_self();
+     if(f == NULL) return false ;
+
+     DXLONG64 hdrs = dx_GetFileSize(f);
+     /*open the script*/
+     FILE *script = fopen(script_name,"rb") ;
+     if(script == NULL)
+     {
+       printf("*Fatal Error. The script file failed to open. File : %s\n",script_name);
+       return false ;
+     }
+
+     uint32_t scrs = dx_GetFileSize(script)  ;
+     DXLONG64 tot_size = hdrs + scrs + 4 + 8 ; /*4 for the uint32_t fir the size and 8 for the signature*/
+     char * buff = (char*)malloc(tot_size)   ;
+     char *buffindx = buff                   ;
+
+     /*read the hydra+ bytes*/
+     DXLONG64 bcnt = fread(buffindx,hdrs,1,f) ;
+     buffindx = &(buff[hdrs]) ;
+
+     /*read the scripts bytes*/
+     bcnt = fread(buffindx,scrs,1,script) ;
+     buffindx = &(buff[hdrs+scrs]) ;
+     /*add the scriptsize*/
+     char *ss = (char*)(&scrs) ;
+     *buffindx = ss[0] ;
+     buffindx++;
+     *buffindx = ss[1] ;
+     buffindx++ ;
+     *buffindx = ss[2] ;
+     buffindx++;
+     *buffindx = ss[3] ;
+     buffindx++;
+
+     /*add the signature*/
+     *buffindx = 'H' ;
+     buffindx++;
+     *buffindx = 'Y' ;
+     buffindx++;
+     *buffindx = 'D' ;
+     buffindx++;
+     *buffindx = 'R' ;
+     buffindx++;
+     *buffindx = 'A' ;
+     buffindx++;
+     *buffindx = 'E' ;
+     buffindx++;
+     *buffindx = 'X' ;
+     buffindx++;
+     *buffindx = 'E' ;
+     buffindx++;
+
+     /*save the file*/
+     dx_string_createU(NULL,"") ;
+     PDX_STRING scrname = dx_string_create_bU(script_name) ;
+     PDX_STRING ext     = dx_string_createU(NULL,".exe")   ; 
+     PDX_STRING newname = dx_string_concat(scrname,ext)    ;
+
+     dx_string_free(scrname) ;
+     dx_string_free(ext)     ;
+     fclose(f)      ;
+     fclose(script) ;
+
+     /*open the new file*/
+
+     f = fopen(newname->stringa,"wb");
+     if(f == NULL)
+     {
+       printf("*Fatal Error. The new file was not created. File : %s\n",newname->stringa);
+       dx_string_free(newname) ; 
+       return false ;
+     }
+
+     dx_string_free(newname)     ;
+
+     if(fwrite(buff,tot_size,1,f) != 1) 
+     {
+       printf("*Fatal Error. The new file is not valid. Error in fwrite(). File : %s\n",newname->stringa);
+       fclose(f) ; 
+       return false ;
+     }
+     fclose(f);
+
+
+     return true ;
+}
+
+
+
+
+
+
+
+
+
+
 
 
 

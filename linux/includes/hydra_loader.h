@@ -44,9 +44,16 @@
    The loader will have the ability to discern if this prefix is used in the main script body or not and will
    throw an error for the declarations , and it will not add this variables in the local scope.
    The change will be done in the [hdr_loader_create_variable] function.
-   Keep in mind that ALL the globals must be declared in the top of the script ELSE the functiona and object that are declared before the 
+   Keep in mind that ALL the globals must be declared in the top of the script ELSE the functions and objects that are declared before the 
    global will be not able to see them. I can change this ofcourse but i believe is better to have the globals
    all in one section of the script. 
+
+   2025-02-04 * Support for an executable form of a script. The Hydra+ will have the ability to create an executable
+   from a script that will be self sufficient. This will be done with the -e flag. In essense Hydra+ use the -c flag and 
+   then copy itself and the compiled script an merge them. When Hydra+ is running, first checks if its in 
+   the script executable form. It ommits if exists the script name parameter from the command line 
+   and loads the compiled script from itself. The drawbacks are that the application is not cross platform anymore 
+   as the compiled script is executed for the specific target OS, and the script is not editable anymore.
 
 
   
@@ -834,17 +841,17 @@ PHDR_LOADER hdr_loader_free(PHDR_LOADER loader)
 
     /*
      There is a specific problem with the block destruction
-     where the script is terminating. If there is in the script a variable that
+     when the script is terminating. If there is in the script a variable that
      has a complex type, and this variable is assigned to a list ,
      and then the list is freed , then the the script variable lest being .Release()
      or reassign , will point to the deallocated object.
      So for now we will ommit the block destruction until I have the time 
      to create a more elegant solution. This will become a serius problem
      only if the Hydra+ supports running another Hydra+ object in a script.
-     For now all is good, because the app will release all itsa memory to the OS.
+     For now all is good, because the app will release all its memory to the OS.
     */
    /***********************************/
-    //hdr_block_free(loader->code)  ;
+    //  hdr_block_free(loader->code)  ;
   /************************************/
     hdr_loader_uninitialize();
     free(loader);
@@ -893,10 +900,19 @@ PHDR_VAR hdr_loader_create_variable(PHDR_LOADER loader, char* name,bool *error)
     return var ; /*success*/
 }
 
-bool hdr_loader_load_main_script(PHDR_LOADER loader, char* filename)
+
+bool hdr_loader_load_main_script(PHDR_LOADER loader, char* filename,PHDR_RAW_BUF embedd_script)
 {
+    /*
+     if the embedd_script is set then this instance is self executable 
+    */
+
     if (loader == NULL) return false ;
-    PHDR_DECRYPTED_BUF mains = hdr_loader_load_script_from_disk(filename) ; 
+    PHDR_DECRYPTED_BUF mains = NULL ;
+    if(embedd_script != NULL) mains = hdr_loader_decrypt_buf_create(embedd_script->buf,embedd_script->len) ;
+    else
+        mains = hdr_loader_load_script_from_disk(filename) ;
+
     if (mains == NULL) return false;
 
     loader->main_script = hdr_incl_script_create(mains, filename);

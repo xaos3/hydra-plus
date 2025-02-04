@@ -3699,8 +3699,34 @@ bool hdr_domStringPrepareFJson(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,
     return true ;
 }
 
+bool hdr_domStringConvertEscapedU(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_VAR for_var,PHDR_VAR *result)
+{
+	/*
+	 The function returns a string that have escaped utf8 characters (\u0000) to a true utf8 characters string 
+	*/
 
+   PHDR_SYS_FUNC_PARAMS params = hdr_sys_func_init_params(inter,token->parameters,0) ;
+   if(params == NULL)
+   {
+	 printf("The system function String.ConvertEUTF8():String failed.\n");
+     return true ;
+   }
 
+    PDX_STRING str  = (PDX_STRING)for_var->obj ;	
+	PDX_STRING nstr = ConvertEscapedUTF8ToString(str) ;
+
+	*result   = hdr_var_create((void*)nstr,"",hvf_temporary_ref,NULL) ;
+	(*result)->type = hvt_simple_string ;
+
+    success:
+    hdr_sys_func_free_params(params) ;
+    return false ;
+
+    fail : 
+    printf("The system function String.ConvertEUTF8()($space_as_plus:Boolean):String failed.\n");
+    hdr_sys_func_free_params(params) ;
+    return true ;
+}
 
 
 

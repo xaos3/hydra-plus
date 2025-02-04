@@ -1887,7 +1887,8 @@ bool hdr_inter_handle_function(PHDR_INTERPRETER inter ,PHDR_COMPLEX_TOKEN token,
 				  if(hdr_inter_fast_str(token->ID, "Lower", 5) == true)      return hdr_domStringLower(inter,token,for_var,result)    ;
 				  if(hdr_inter_fast_str(token->ID, "UpperGr", 7) == true)    return hdr_domStringUpperGr(inter,token,for_var,result)  ;
 				  if(hdr_inter_fast_str(token->ID, "LowerGr", 7) == true)    return hdr_domStringLowerGr(inter,token,for_var,result)  ;
-				  if(hdr_inter_fast_str(token->ID, "PrepareForJson", 14) == true) return hdr_domStringPrepareFJson(inter,token,for_var,result)    ;
+				  if(hdr_inter_fast_str(token->ID, "PrepareForJson", 14) == true)   return hdr_domStringPrepareFJson(inter,token,for_var,result)    ;
+				  if(hdr_inter_fast_str(token->ID, "ConvertEUTF8", 12) == true) return hdr_domStringConvertEscapedU(inter,token,for_var,result)  ;
 				}
 
 		} 

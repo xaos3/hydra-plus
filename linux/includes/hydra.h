@@ -69,7 +69,7 @@ PHYDRA HydraFree(PHYDRA hydra);
  Frees the hydra object and deallocates all the memory
 #*/
 
-bool HydraLoadScript(PHYDRA hydra , char* mainscript);
+bool HydraLoadScript(PHYDRA hydra , char* mainscript,PHDR_RAW_BUF embedded_scr);
 /*#
  Loads the mainscript and its includes
 #*/
@@ -157,20 +157,20 @@ PHYDRA HydraFree(PHYDRA hydra)
 
 }
 
-bool HydraLoadScript(PHYDRA hydra , char *mainscript)
+bool HydraLoadScript(PHYDRA hydra , char *mainscript,PHDR_RAW_BUF embedded_scr)
 {
     if (hydra == NULL)
     {
         printf("**System : Fatal Error -> [hydra] is NULL\n");
         return false;
     }
-    if (mainscript == NULL)
+    if ((mainscript == NULL)&&(embedded_scr == NULL))
     {
         printf("**System : Fatal Error -> [mainscript] is NULL\n");
         return false;
     }
 
-    if (hdr_loader_load_main_script(hydra->loader, mainscript) == false)
+    if (hdr_loader_load_main_script(hydra->loader, mainscript,embedded_scr) == false)
     {
         printf("**System : Fatal Error -> Main Script was not loaded. File name : %s\n",mainscript);
         return false ; 
@@ -218,7 +218,6 @@ bool HydraLoadParams(PHYDRA hydra,char * cmd_line)
    the function gets a command line in the form of [$param1="test",$param2=0...] 
    and creates the apropriate variables in the hydra->params
   */
-
    if(cmd_line == NULL) return true ; /*ewmpty string is not an error, just no parameters*/
 
    /*check if the string is encapsulated in []*/

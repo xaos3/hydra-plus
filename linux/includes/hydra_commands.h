@@ -1607,6 +1607,7 @@ bool hydra_set_params(PHDR_BLOCK code , PHDR_VAR_LIST param_var_list)
     /*find the variable in the block and set the value*/
     PHDR_VAR_LIST varlist    = code->variables ;
     PHDR_VAR_LIST paramlist  = param_var_list;
+
     if(paramlist->list->count == 0 ) return true ; /*no params*/
 
     PDX_LIST *buckets = paramlist->list->buckets ;

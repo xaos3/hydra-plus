@@ -87,6 +87,7 @@ void* hdr_mem_logger_free_info(PHDR_POINTER_INFO info)
 {
 	dx_string_free(info->var_name) ;
 	free(info);
+	return NULL ;
 }
 
 void* hdr_mem_logger_free_info_in_obj(PDXL_OBJECT obj)

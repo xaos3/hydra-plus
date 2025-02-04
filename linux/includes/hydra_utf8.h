@@ -471,7 +471,150 @@ PDX_STRING LowerCaseGr(PDX_STRING str,bool no_tonos)
     return news ;
 }
 
+DXLONG64 _count_bytes(char *chars)
+{
+    /*
+     count the /u0000 entities and return how many bytes we will need to convert the string 
+    */
+    DXLONG64 cnt = 0 ;
+    char *indx = chars ;
+    while(*indx != 0)
+    {
+      if(*indx == '\\')
+      {
+        /*check the following 5 characters if they have the correct pattern*/
+        if((*(indx+1) == 'u')||(*(indx+1) == 'U'))
+        {
+          if(*(indx+2) != 0)
+              if(*(indx+3) != 0)
+                  if(*(indx+4) != 0)
+                      if(*(indx+5) != 0)
+                      {
+                        cnt = cnt+4 ; /*we calculate 4 bytes for the codepoint because we do not now exactly the size and we do not want to stress the cpu to calculate it*/
+                        indx = indx+6 ; /*next character*/
+                      }
+                      else
+                      {
+                        indx++ ;
+                        cnt++;
+                      }
+        }
+        else
+        {
+            indx++ ;
+            cnt++ ; /*the one byte for the \*/
+        }
+      }
+      else 
+      {
+          indx++ ;
+          cnt++  ; /*the byte that we are at*/
+      }
+     
+    
+    }
 
+    return cnt ;
+}
+
+char * _ret_bytes_from_escu(char *bytes)
+{
+ /*
+  the function expects a buffer of 4 bytes , like 0f01 and it will return a unicode code point 
+  as a string
+ */
+
+  char upoint[5] ;
+  upoint[0] = bytes[0];
+  upoint[1] = bytes[1];
+  upoint[2] = bytes[2];
+  upoint[3] = bytes[3];
+  upoint[4] = 0       ; /*terminate it*/
+ 
+  uint32_t uval  = (uint32_t)dxHexToDec(upoint);
+  char ret[5] ;
+  dxConvertUint32ToUTF8(ret,uval) ;
+  return ret     ;
+}
+
+PDX_STRING ConvertEscapedUTF8ToString(PDX_STRING str)
+{
+ /*
+   The function converts a string that is encoded in escaped utf8 like \u03bd\u03b1
+   to a string with the actual bytes (as utf8 string)
+ */
+ if(str == NULL)   return dx_string_createU(NULL,"") ;
+ if(str->len == 0) return dx_string_createU(NULL,"") ;
+
+ char * raw_string = str->stringa ;
+ DXLONG64 cntBytes  = _count_bytes(raw_string) ; 
+ char * buff = (char*)malloc(cntBytes+1)       ;
+ buff[cntBytes] = 0            ;
+ char *buffindx  = buff         ;
+ char *strindx  = str->stringa ;
+ 
+ while(*strindx != 0)
+ {
+
+   if(*strindx == '\\')
+   {
+     if((*(strindx+1) == 'u')||(*(strindx+1) == 'U'))
+     {
+      /*we will check that the codepoint does not terminates abruptly with a zero but no more error detection will be done*/
+        if(*(strindx+2) != 0)
+              if(*(strindx+3) != 0)
+                  if(*(strindx+4) != 0)
+                      if(*(strindx+5) != 0)
+                      {
+                        char *bts = _ret_bytes_from_escu(strindx+2); /*the code point starts from there*/
+                        int len = strlen(bts);
+                        *buffindx = bts[0] ;
+                        buffindx++ ;
+                        if(len>1)
+                        {
+                          *buffindx = bts[1] ;
+                          buffindx++ ; /*ready for the next byte*/
+                         if(len>2)
+                         {
+                             *buffindx = bts[2] ;
+                              buffindx++ ; /*ready for the next byte*/
+                             if(len>3)
+                             {
+                              *buffindx = bts[3] ;
+                               buffindx++ ; /*ready for the next byte*/
+                             }
+                         }
+                        }
+                        strindx = strindx + 6 ; /*next character*/
+                      }
+                        else
+                          {
+                            *buffindx = *strindx ;
+                            buffindx++ ;/*ready for the next byte*/
+                            strindx++ ;/*next character*/
+                          }
+     } 
+     else
+        {
+         *buffindx = *strindx ;
+          buffindx++ ;/*ready for the next byte*/
+          strindx++ ;/*next character*/
+        }
+      
+   }
+    else
+        {
+          *buffindx = *strindx ;
+          buffindx++ ;/*ready for the next byte*/
+          strindx++ ;/*next character*/
+        }
+  
+ }
+ 
+ *buffindx = 0 ;
+ return dx_string_create_bU(buff) ;
+
+}
 
 
 
