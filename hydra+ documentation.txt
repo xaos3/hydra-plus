@@ -320,6 +320,16 @@ The above command will create a main.hydra.comp file and a main.hydra.obf file.
 Both of the files are executable by [Hydra+]. The .comp file is the monolithic file with human readable characters
 and the .obf is the monolithic file with its contents obfuscated.
 
+-Create a self executable script
+
+Hydra+ supports the creation of a self executing script that can be executed directly.
+To create a self executing script run the command : 
+hydra+ -e c:\myapp\main.hydra
+The above command will create a main.hydra.comp file, a main.hydra.obf file and a main.hydra.comp.exe file.
+The main.hydra.comp.exe is a self executing file that can be run in Windows and Linux (depents of the target OS that was created)
+by itself. Note : In Linux the self executing script needs the runtime libraries that Hydra+ itself needs to run.
+Note : The .exe extension is not mandatory for Linux and if you want you can change it as you see fit.
+
 -Pass Parameters from the Command Line
 
 Hydra+ is not focused in the command line for input or output but for convinience can take values from the command line
@@ -1112,6 +1122,11 @@ The function is applicable only to [Simple Strings].
 .XmlToList($error): Simple List 
 The function creates a native list that describes an xml formated string.
 See the section XML support.
+The function is applicable only to [Simple Strings].
+
+.ConvertEUTF8()
+The function converts a string with escaped utf8 characters like
+\u00fc to normal utf8 strings.
 
 
 --Numbers
@@ -1794,7 +1809,8 @@ $some_var.IsUndef() : Boolean
 Returns true if the variable is undefined.
 
 $some_var.Release()
-Sets the variable to undefined and its internal object to null. It does not release its object memory, except if it is a [Simple String]. 
+Sets the variable to undefined and its internal object to null.
+It does not release its object memory, except if it is a [Simple String]. 
 
 undef():Variable (as undefined)
 Returns an undefined variable. Example : $unknown_var = undef();
