@@ -5,7 +5,8 @@
  Hydra+ mainscript.hydra     : Runs the mainscript.hydra as an executable script
  Hydra+ -o somescript.hydra  : Reads the somescript.hydra and creates a new obfuscated file in the same dir, with the same name but with the added
 							   extension [.obf] . e.g somescript.hydra.obf 
-Hydra+ -c somescript.hydra	 : "Compiles" a script and its includes to a large obfuscated file in the same directory with the main file.  
+ Hydra+ -c somescript.hydra	 : "Compiles" a script and its includes to a large obfuscated file in the same directory with the main file.  
+ Hydra+ -e somescript.hydra  :  Creates an executable that can run as a standalone application.
 
  Pass parameters from the command as variables in the script.
  Hydra+ can take values from the command line and fill variables in the script mid execution.
@@ -49,6 +50,7 @@ Hydra+ -c somescript.hydra	 : "Compiles" a script and its includes to a large ob
 #include <unistd.h>
 #include <string.h>
 #include <dirent.h> 
+#include <dlfcn.h>
 #endif // _LINUX
 
 #include <stdlib.h>
@@ -95,7 +97,7 @@ void sigpipe_handler_dummy(int notused)
 int main(int argc, char** argv)
 {
 
-/*UTF8 SUPPORT IN CONSOLE*/
+/*UTF8 SUPPORT IN CONSOLE AND HANDLE THE BROKEN PIPE IN LINUX*/
 
 	#ifdef _LINUX
 	  sigaction(SIGPIPE,&(struct sigaction){sigpipe_handler_dummy},NULL) ;
@@ -107,7 +109,6 @@ int main(int argc, char** argv)
 		SetConsoleCP(CP_UTF8);
 	#endif
 /*************************/
-
 
     char *main_script       = NULL  ;
 	PHDR_RAW_BUF embbed_scr = NULL  ;
@@ -126,8 +127,8 @@ int main(int argc, char** argv)
 	  }
 	  embbed_scr = rawbuff ; 
 
-	  /*handle the parameters*/
-	  if(argc == 3 )
+	  /*handle the parameters and the virtual path*/
+	  if(argc > 1 )
 	  {
 		  if((argv[1][0] == '-')&&(argv[1][1] == 'p'))
 		  {
@@ -139,11 +140,28 @@ int main(int argc, char** argv)
 
 			params_exists = true ;
 		  }
+		  else
+			  {
+			      /*a virtual path exists*/
+			      main_script = argv[1] ;
+				  if(argc > 2)
+				  if((argv[2][0] == '-')&&(argv[2][1] == 'p'))
+				  {
+					  /*check if the parameters are after a virtual path*/
+					if(argc < 4 ) 
+					{
+					   printf("***Fatal Error : After the -p flag a string of variable assigments for Hydra+ must be set. Example : -p [$var1=0,$var2=`hello`]\n");
+					   return ;
+					}
+
+					params_exists = true ;
+				  }
+			  }
 	  }
 	  else
-		  if(argc > 1)
+		  if(argc > 4)
 		  {
-			printf("***Fatal Error : In the self executable state only the -p [...] parameter is valid. \n");
+			printf("***Fatal Error : In the self executable mode only the virtual main script path and the -p [...] parameter is valid. \n");
 			return ;
 		  }
 
@@ -165,7 +183,6 @@ int main(int argc, char** argv)
 		  return 0 ;
 		}
 	
-
 		if(argv[1][0] != '-')
 		{
 		   /*retrieve next param as the script's file name*/
@@ -364,7 +381,7 @@ int main(int argc, char** argv)
 				 case hdr_sd_ebuf_null	   : {printf("***Fatal Error : The [ebuf] is NULL\n");}break;
 				 case hdr_sd_ebuf_buf_null : {printf("***Fatal Error : The ebuffer is NULL\n");}break;
 				 case hdr_sd_no_open	   : {printf("***Fatal Error : Unable to open the file [%s]\n",newf->stringa);}break;
-				 case hdr_sd_success	   : {printf("Success! A new executable script file was created.\n");}break;
+				 case hdr_sd_success	   : {printf("Success! A new executable script file was created\n");}break;
 			 }
 
 			 /*now we load the obfuscated compiled file and create an executable*/
@@ -389,9 +406,9 @@ int main(int argc, char** argv)
 
 	if(params_exists == true)
 	{
-	  char *param_l = argv[4] ;
-	  /*in the self executable state the params are the third string */
-	  if(embbed_scr != NULL) param_l = argv[2] ; 
+	  char *param_l = argv[3] ;
+	  /*in the self executable state the params are the third string if a virtual path does not exists*/
+	  if((embbed_scr != NULL)&&(argc==3)) param_l = argv[2] ; 
 	  if(HydraLoadParams(hydra,param_l) == false) return 0 ; /*the function has print the appropriate error code*/
 	}
 
