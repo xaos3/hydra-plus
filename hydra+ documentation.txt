@@ -326,9 +326,15 @@ Hydra+ supports the creation of a self executing script that can be executed dir
 To create a self executing script run the command : 
 hydra+ -e c:\myapp\main.hydra
 The above command will create a main.hydra.comp file, a main.hydra.obf file and a main.hydra.comp.exe file.
-The main.hydra.comp.exe is a self executing file that can be run in Windows and Linux (depents of the target OS that was created)
-by itself. Note : In Linux the self executing script needs the runtime libraries that Hydra+ itself needs to run.
+The main.hydra.comp.exe is a self executing file that can be run in Windows and Linux (depends of the target OS that was created)
+by itself. 
+Note : In Linux the self executing script needs the runtime libraries that Hydra+ itself needs to run.
 Note : The .exe extension is not mandatory for Linux and if you want you can change it as you see fit.
+Note : If you use in the code the Hydra.ScriptPath() then you have to supply a path as the virtual main script path.
+for example if a self executable script uses the Hydra.ScriptPath() to retrieve the /home/app directory
+then you can execute the script as ./myscript /home/app/
+WARNING! The virtual main script path MUST end with a "/" or in windows with a "/" or "\" else
+the string before the last / or \ will be returned.
 
 -Pass Parameters from the Command Line
 
@@ -866,12 +872,7 @@ of the string.
 
 .Concat($string) 
 The function adds the $string to the caller. The function altehrs the caller and does not return a new string.
-This function is valid only for the [concat] or [expand] string types, the simple strings can be concated by the [+] operator.
-
-.Replace($word,$replace_with,$from_index,$replace_all)
-The function replace the $word string with the $replace_with string, starting from $from_index.
-If the $replace_all is true then all the instances of the $word will be replaced, else only the first occurrence
-of the $word will be replaced. the caller string will be altered. This function is valid only for the [Simple String] type.
+This function is valid only for the [concat] or [expand] string types, the simple strings can be concatenated by the [+] operator.
 
 .Expand()
 This function is applicable only for the [var_expand] type of string. When the function is called,
@@ -1040,7 +1041,7 @@ The function explodes the caller to parts based of the $seperator as separator a
 This function must be preffered for one byte char separators than [Explode] as it has superior performance.
 For example , for a string ~10ΜΒ with long lines , an .Explode(10) consumes 37 seconds 
 while the ExplodeChar(10) consumes 0.016 seconds. The difference is great and is mainly because
-[Explode] do alot of checking for the validity and conversion of the UTF8 encoding and simultaneously
+[Explode] do a lot of checking for the validity and conversion of the UTF8 encoding and simultaneously
 can use as separators full strings, while 
 the [ExplodeChar] does not and simple parsing the bytes of the data.   
 
@@ -1773,7 +1774,7 @@ random($seed:Integer):Integer
 The function returns a pseudo random number based of the seed.
 
 random_id($length : Integer):String
-The function returns a string with random capital latin leters with length of $length. DO NOT call this function 
+The function returns a string with random capital latin leters with the length of $length. DO NOT call this function 
 in quick succession as it uses as a seed the (GetTickCount % 4000000000) result, 
 and if the function is called too fast the seed value will be the same and the same id will be produced.
 This is for convinience and for real applications a more complex and sofisticated function must be 
