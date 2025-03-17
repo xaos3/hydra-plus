@@ -916,8 +916,8 @@ bool hdr_loader_load_main_script(PHDR_LOADER loader, char* filename,PHDR_RAW_BUF
     if (mains == NULL) return false;
 
     loader->main_script = hdr_incl_script_create(mains, filename);
-    char* bf = dxExtractPathFromFilename(filename);
-    loader->main_path = dx_string_createU(loader->main_path,bf) ;
+    char* bf = dxExtractPathFromFilename(filename); 
+    loader->main_path = dx_string_createU(loader->main_path,bf) ;/*this will be set even if the script is self executed if the param is passed*/
     free(bf) ;
     bf = dxExtractFilename(filename);
     loader->main_name = dx_string_createU(loader->main_name, bf);
