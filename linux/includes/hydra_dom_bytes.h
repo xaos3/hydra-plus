@@ -604,4 +604,52 @@ bool hdr_domBytesFillByte(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHDR
 }
 
 
+bool hdr_domBytesUnCompressStr(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_VAR for_var,PHDR_VAR *result)
+{
+	/*
+	 The function uncompresses the buffer and returns a string. The buffer MUST be compressed with the Compress function of the string.
+	*/
 
+   PHDR_SYS_FUNC_PARAMS params = hdr_sys_func_init_params(inter,token->parameters,1) ;
+   if(params == NULL)
+   {
+	 printf("The system function Bytes.UnCompressStr(maxLength:Integer):String failed.\n");
+     return true ;
+   }
+    
+    bool type_error = false ;
+    DXLONG64 maxlen = hdr_inter_ret_integer(params->params[0],&type_error) ;
+    if(type_error == true)
+    {
+	  printf("The parameter must be an Integer.\n");
+      goto fail ;
+    }
+
+	if(maxlen <=0 )
+	{
+	   printf("The maxLength must be larger than zero.\n");
+       goto fail ;
+	}
+
+    PHDR_BYTES bytes = (PHDR_BYTES)for_var->obj ;
+	PDX_STRING ucompstr = NULL ;
+	
+	ucompstr = dxUnCompress_String(bytes->bytes,bytes->length,maxlen) ;
+	
+	if(ucompstr == NULL)
+	{
+	  ucompstr = dx_string_createU(NULL,"") ;
+	}
+
+	*result         = hdr_var_create(ucompstr,"",hvf_temporary_ref,NULL) ;
+	(*result)->type = hvt_simple_string ;
+
+    success:
+    hdr_sys_func_free_params(params) ;
+    return false ;
+
+    fail : 
+    printf("The system function Bytes.UnCompressStr(maxLength:Integer):String failed.\n");
+    hdr_sys_func_free_params(params) ;
+    return true ;
+}

@@ -729,14 +729,14 @@ char * dxBytesXor(char * bytes,DXLONG64 bcount,PDX_STRING key) ;
  but every byte of the buffer is xored with the key
 #*/
 
-PDX_STRING dxCompress_String(char *str,unsigned long len) ;
+char *dxCompress_String(char *str,unsigned long len,DXLONG64 *comp_len) ;
 /*#
-  The function compresses the string and returns a new compressed PDX_STRING 
+  The function compresses the string and returns a new compressed buffer
 #*/
 
 PDX_STRING dxUnCompress_String(char *str,unsigned long len , unsigned long or_len) ;
 /*#
-  The function compresses the string and returns a new compressed PDX_STRING 
+  The function uncompresses the str and returns a new PDX_STRING 
 #*/
 
 void dx_strcpy(char *dest,char *source) ;
@@ -4776,7 +4776,7 @@ char * dxBytesXor(char * bytes,DXLONG64 bcount,PDX_STRING key)
 }
 
 
-PDX_STRING dxCompress_String(char *str,unsigned long len) 
+char *dxCompress_String(char *str,unsigned long len,DXLONG64 *comp_len) 
 {
     /*
      The compression is achieved via the miniz library that in this situation is part of the cubazip!
@@ -4799,10 +4799,8 @@ PDX_STRING dxCompress_String(char *str,unsigned long len)
         free(pCmp);
         return NULL;
     }
-
-    /*create the PDX_STRING*/
-    PDX_STRING tstr = dx_string_create_bU((char*)pCmp) ;
-    return tstr ;
+    *comp_len = cmp_len ;
+    return pCmp ;
 }
 
 PDX_STRING dxUnCompress_String(char *str,unsigned long len , unsigned long or_len)
