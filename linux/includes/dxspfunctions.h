@@ -4782,7 +4782,7 @@ PDX_STRING dxCompress_String(char *str,unsigned long len)
      The compression is achieved via the miniz library that in this situation is part of the cubazip!
     */ 
     int  cmp_status;
-    unsigned long cmp_len = compressBound(len);
+    unsigned long cmp_len = mz_compressBound(len);
     unsigned char *pCmp;
 
     /* Allocate buffers to hold compressed and uncompressed data.*/
@@ -4793,7 +4793,7 @@ PDX_STRING dxCompress_String(char *str,unsigned long len)
     }
 
     /* Compress the string.*/
-    cmp_status = compress(pCmp, &cmp_len, (const unsigned char *)str, len);
+    cmp_status = mz_compress(pCmp, &cmp_len, (const unsigned char *)str, len);
     if (cmp_status != 0)
     {
         free(pCmp);
@@ -4811,7 +4811,7 @@ PDX_STRING dxUnCompress_String(char *str,unsigned long len , unsigned long or_le
     int  cmp_status;
     unsigned long uncomp_len = or_len  ;
     unsigned char *uncStr = (unsigned char*)malloc(or_len+1) ;
-    cmp_status = uncompress(uncStr, &uncomp_len, str , len);
+    cmp_status = mz_uncompress(uncStr, &uncomp_len, str , len);
     if (cmp_status != 0)
     {
         free(uncStr);
