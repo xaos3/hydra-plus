@@ -1066,15 +1066,8 @@ The function is applicable only to [Simple Strings].
 The function decodes a Base64 string to its binary representation. Ofcourse the data must have binary data before the encoding.
 The function is applicable only to [Simple Strings].
 
-.Compress():String
-The function compresses the string (with zlib) and returns the compressed string. 
-
-.UnCompress(maxLength:Integer):String
-The function uncompress a string that was previously compressed by the .Compress() function.
-The maxLength is the maximun buffer length that will be used for the uncompressing.
-The function cannot return a string that where uncompressed is bigger than the maxLength.
-In case that the string is bigger than the maxLength , the function will return 
-the string bytes until maxLength.
+.Compress():Bytes
+The function compresses the string (with zlib) and returns the compressed bytes. 
 
 .JsonToList($error:String):List
 
@@ -1360,6 +1353,12 @@ returns false.
 .Xor($key):Bytes
 The function returns a Bytes type with the xored bytes (with the $key) of the original.
 
+.UnCompressStr(maxLength:Integer):String
+The function uncompress a string that was previously compressed by the .Compress() function.
+The maxLength is the maximun buffer length that will be used for the uncompressing.
+The function cannot return a string that when uncompressed is bigger than the maxLength.
+In case that the string is bigger than the maxLength , the function will return 
+the string bytes until maxLength.
 
 -- Domain [File] --
  
