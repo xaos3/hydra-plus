@@ -1062,10 +1062,19 @@ The function is applicable only to [Simple Strings].
 The function decodes the caller that is encoded to Base64.
 The function is applicable only to [Simple Strings].
 
-B64DBinary():Bytes
-
+.B64DBinary():Bytes
 The function decodes a Base64 string to its binary representation. Ofcourse the data must have binary data before the encoding.
 The function is applicable only to [Simple Strings].
+
+.Compress():String
+The function compresses the string (with zlib) and returns the compressed string. 
+
+.UnCompress(maxLength:Integer):String
+The function uncompress a string that was previously compressed by the .Compress() function.
+The maxLength is the maximun buffer length that will be used for the uncompressing.
+The function cannot return a string that where uncompressed is bigger than the maxLength.
+In case that the string is bigger than the maxLength , the function will return 
+the string bytes until maxLength.
 
 .JsonToList($error:String):List
 
@@ -1336,6 +1345,9 @@ Returns the bytes as a utf8 string, if the byte_len is smaller than 0 then all t
 If the byte_len is greater than 0 then only these bytes will be represented as a UTF8 string.
 The function does not do any error correction , so if the byte_len cut a utf8 character then this character will be
 corrupted in the result.
+
+.Base64Encode():String
+Return a simple string that its contents are the bytes in base64 encoding form.
 
 .FindPattern($pattern:String,$startPos:Integer):Integer
 Return the position of the first byte of the pattern in the Bytes.
