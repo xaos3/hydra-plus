@@ -137,6 +137,7 @@ The basic string object
   DXLONG64 len           ; // the length of the string in characters
   DXLONG64 bcount		 ; // the length of the string in bytes WITHOUT the terminating 0
 
+
 } *PDX_STRING ;
 
 
@@ -610,7 +611,7 @@ PDX_STRING dx_string_createA(PDX_STRING dxstr , char * str)
 
 		dxstr->stringw = NULL      ;
 		dxstr->stringx = NULL      ;
-		dxstr->type   = dx_ansi   ;
+		dxstr->type    = dx_ansi   ;
 		dxstr->bcount  = dxstr->len ;
 		return dxstr ;
 	}
@@ -625,7 +626,7 @@ PDX_STRING dx_string_createA(PDX_STRING dxstr , char * str)
 
 	nstr->stringw = NULL      ;
 	nstr->stringx = NULL      ;
-	nstr->type   = dx_ansi   ;
+	nstr->type    = dx_ansi   ;
 	nstr->bcount  = nstr->len ;
 	return nstr ;
 }
@@ -657,7 +658,6 @@ PDX_STRING dx_string_createW(PDX_STRING dxstr , wchar_t * str)
 		dxstr->stringa = NULL      ;
 		dxstr->stringx = NULL      ;
 		dxstr->type   = dx_wide    ;
-
 		return dxstr ;
 	}
 
@@ -824,6 +824,7 @@ PDX_STRING dx_string_createX_a(PDX_STRING dxstring, char * str)
 	nstr->stringx =	(DXCHAR*)malloc(nstr->bcount+sizeof(DXCHAR)) ; 
 	
 	if (nstr->stringx == NULL) return NULL ;
+
 	if(nstr->len == 0)
 	{
 		nstr->stringx[0]= 0 ;
@@ -904,6 +905,7 @@ PDX_STRING dx_string_createX_w(PDX_STRING dxstring, wchar_t * str)
 	nstr->stringx =	(DXCHAR*)malloc(nstr->bcount+sizeof(DXCHAR)) ; 
 	
 	if (nstr->stringx == NULL) return NULL ;
+	
 	if(nstr->len == 0)
 	{
 		nstr->stringx[0]= 0 ;
@@ -948,7 +950,7 @@ PDX_STRING dx_string_createX_u(PDX_STRING dxstring, char * str)
 
 		dxstring->stringx =	(DXCHAR*)malloc(dxstring->bcount+sizeof(DXCHAR)) ; // NULL terminating
 		if (dxstring == NULL) return NULL ;
-		
+	    
 		if(dxstring->len == 0)
 		{
 			dxstring->stringx[0]= 0 ;
@@ -1050,7 +1052,7 @@ PDX_STRING dx_string_create_bW(wchar_t *buf)
 	nstr->len     = StrLenW(buf)  ;
 	nstr->bcount  = nstr->len * sizeof(wchar_t) ;
 
-	nstr->stringw =	buf								;
+	nstr->stringw =	buf		  ;
 	nstr->stringa = NULL      ;
 	nstr->stringx = NULL	  ;
 	nstr->type   = dx_wide    ;

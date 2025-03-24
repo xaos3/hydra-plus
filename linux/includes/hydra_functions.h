@@ -1877,6 +1877,8 @@ bool hdr_inter_handle_function(PHDR_INTERPRETER inter ,PHDR_COMPLEX_TOKEN token,
 				  if(hdr_inter_fast_str(token->ID, "Base64Encode", 12) == true)  return hdr_domStringBase64Encode(inter,token,for_var,result) ;
 				  if(hdr_inter_fast_str(token->ID, "Base64Decode", 12) == true)  return hdr_domStringBase64Decode(inter,token,for_var,result) ;
 				  if(hdr_inter_fast_str(token->ID, "B64DBinary", 10) == true)    return hdr_domStringBase64DBinary(inter,token,for_var,result) ;
+				  if(hdr_inter_fast_str(token->ID, "Compress", 8) == true)       return hdr_domStringCompress(inter,token,for_var,result) ;
+				  if(hdr_inter_fast_str(token->ID, "UnCompress", 10) == true)    return hdr_domStringUnCompress(inter,token,for_var,result) ;
 				  if(hdr_inter_fast_str(token->ID, "JsonToList", 10) == true)	 return hdr_domStringToJson(inter,token,for_var,result)	  ;
 				  if(hdr_inter_fast_str(token->ID, "XmlToList", 9) == true)	     return hdr_domStringToXml(inter,token,for_var,result)	  ;
 				  if(hdr_inter_fast_str(token->ID, "GetExt", 6) == true)		 return hdr_domStringGetExt(inter,token,for_var,result)	  ;

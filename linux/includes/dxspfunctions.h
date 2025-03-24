@@ -729,7 +729,15 @@ char * dxBytesXor(char * bytes,DXLONG64 bcount,PDX_STRING key) ;
  but every byte of the buffer is xored with the key
 #*/
 
+PDX_STRING dxCompress_String(char *str,unsigned long len) ;
+/*#
+  The function compresses the string and returns a new compressed PDX_STRING 
+#*/
 
+PDX_STRING dxUnCompress_String(char *str,unsigned long len , unsigned long or_len) ;
+/*#
+  The function compresses the string and returns a new compressed PDX_STRING 
+#*/
 
 void dx_strcpy(char *dest,char *source) ;
 
@@ -4766,6 +4774,57 @@ char * dxBytesXor(char * bytes,DXLONG64 bcount,PDX_STRING key)
 
     return buff ;
 }
+
+
+PDX_STRING dxCompress_String(char *str,unsigned long len) 
+{
+    /*
+     The compression is achieved via the miniz library that in this situation is part of the cubazip!
+    */ 
+    int  cmp_status;
+    unsigned long cmp_len = compressBound(len);
+    unsigned char *pCmp;
+
+    /* Allocate buffers to hold compressed and uncompressed data.*/
+    pCmp = (unsigned char*)malloc((size_t)cmp_len);
+    if (pCmp == NULL)
+    {
+        return NULL ;
+    }
+
+    /* Compress the string.*/
+    cmp_status = compress(pCmp, &cmp_len, (const unsigned char *)str, len);
+    if (cmp_status != 0)
+    {
+        free(pCmp);
+        return NULL;
+    }
+
+    /*create the PDX_STRING*/
+    PDX_STRING tstr = dx_string_create_bU((char*)pCmp) ;
+    return tstr ;
+}
+
+PDX_STRING dxUnCompress_String(char *str,unsigned long len , unsigned long or_len)
+{
+    /*the or_len is the original uncompressed length*/
+    int  cmp_status;
+    unsigned long uncomp_len = or_len  ;
+    unsigned char *uncStr = (unsigned char*)malloc(or_len+1) ;
+    cmp_status = uncompress(uncStr, &uncomp_len, str , len);
+    if (cmp_status != 0)
+    {
+        free(uncStr);
+        return NULL;
+    }
+
+    uncStr[uncomp_len] = 0 ; /*terminate string*/
+    /*create the PDX_STRING*/
+    PDX_STRING tstr = dx_string_create_bU((char*)uncStr) ;
+    return tstr ;
+
+}
+
 
 /*################################################################*/
 

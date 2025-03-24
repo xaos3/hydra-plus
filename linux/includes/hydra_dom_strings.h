@@ -3244,6 +3244,90 @@ bool hdr_domStringBase64DBinary(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token
     return true ;
 }
 
+bool hdr_domStringCompress(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_VAR for_var,PHDR_VAR *result)
+{
+	/*
+	 The function compresses the string and returns it.
+	*/
+
+   PHDR_SYS_FUNC_PARAMS params = hdr_sys_func_init_params(inter,token->parameters,0) ;
+   if(params == NULL)
+   {
+	 printf("The system function String.Compress():String failed.\n");
+     return true ;
+   }
+
+    PDX_STRING str     = (PDX_STRING)for_var->obj ;
+	PDX_STRING compstr = dxCompress_String(str->stringa,str->bcount) ;
+    if(compstr == NULL)
+	{
+	  compstr = dx_string_createU(NULL,"") ;
+	}	
+
+
+	*result         = hdr_var_create(compstr,"",hvf_temporary_ref,NULL) ;
+	(*result)->type = hvt_simple_string ;
+
+    success:
+    hdr_sys_func_free_params(params) ;
+    return false ;
+
+    fail : 
+    printf("The system function String.Compress():String failed.\n");
+    hdr_sys_func_free_params(params) ;
+    return true ;
+}
+
+bool hdr_domStringUnCompress(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_VAR for_var,PHDR_VAR *result)
+{
+	/*
+	 The function compresses the string and returns it.
+	*/
+
+   PHDR_SYS_FUNC_PARAMS params = hdr_sys_func_init_params(inter,token->parameters,1) ;
+   if(params == NULL)
+   {
+	 printf("The system function String.UnCompress(maxLength:Integer):String failed.\n");
+     return true ;
+   }
+    
+    bool type_error = false ;
+    DXLONG64 maxlen = hdr_inter_ret_integer(params->params[0],&type_error) ;
+    if(type_error == true)
+    {
+	  printf("The parameter must be an Integer.\n");
+      goto fail ;
+    }
+
+	if(maxlen <=0 )
+	{
+	   printf("The maxLength must be larger than zero.\n");
+       goto fail ;
+	}
+
+    PDX_STRING str      = (PDX_STRING)for_var->obj ;
+	PDX_STRING ucompstr = NULL ;
+	
+	ucompstr = dxUnCompress_String(str->stringa,str->bcount,maxlen) ;
+	
+	if(ucompstr == NULL)
+	{
+	  ucompstr = dx_string_createU(NULL,"") ;
+	}
+
+	*result         = hdr_var_create(ucompstr,"",hvf_temporary_ref,NULL) ;
+	(*result)->type = hvt_simple_string ;
+
+    success:
+    hdr_sys_func_free_params(params) ;
+    return false ;
+
+    fail : 
+    printf("The system function String.UnCompress():String failed.\n");
+    hdr_sys_func_free_params(params) ;
+    return true ;
+}
+
 
 /*** 
 
