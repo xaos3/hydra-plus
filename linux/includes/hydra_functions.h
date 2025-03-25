@@ -1987,7 +1987,9 @@ bool hdr_inter_handle_function(PHDR_INTERPRETER inter ,PHDR_COMPLEX_TOKEN token,
 			if(hdr_inter_fast_str(token->ID, "Xor", 3) == true)           return hdr_domBytesXor(inter,token,for_var,result);
 			if(hdr_inter_fast_str(token->ID, "FillWithZero", 12) == true) return hdr_domBytesFillZero(inter,token,for_var);
 			if(hdr_inter_fast_str(token->ID, "FillWithByte", 12) == true) return hdr_domBytesFillByte(inter,token,for_var);
-			if(hdr_inter_fast_str(token->ID, "UnCompressStr", 13) == true)    return hdr_domBytesUnCompressStr(inter,token,for_var,result) ;
+			if(hdr_inter_fast_str(token->ID, "UnCompressStr", 13) == true) return hdr_domBytesUnCompressStr(inter,token,for_var,result) ;
+			if(hdr_inter_fast_str(token->ID, "UnCompress", 10) == true)    return hdr_domBytesUnCompress(inter,token,for_var,result) ;
+			if(hdr_inter_fast_str(token->ID, "Compress", 8) == true)       return hdr_domBytesCompress(inter,token,for_var,result) ;
 		}
 		else
 		if(for_var->type == hvt_file)

@@ -739,6 +739,16 @@ PDX_STRING dxUnCompress_String(char *str,unsigned long len , unsigned long or_le
   The function uncompresses the str and returns a new PDX_STRING 
 #*/
 
+char* dxCompress(char *str,unsigned long len,unsigned long *comp_len) ;
+/*#
+  The function compresses the string and returns a new compressed buffer
+#*/
+
+char *dxUnCompress(char *str,unsigned long len , unsigned long max_len,unsigned long *unc_len);
+/*#
+  The function uncompresses the str and returns a new PDX_STRING 
+#*/
+
 void dx_strcpy(char *dest,char *source) ;
 
 /*****************************************************************************/
@@ -4823,6 +4833,51 @@ PDX_STRING dxUnCompress_String(char *str,unsigned long len , unsigned long or_le
 
 }
 
+char *dxUnCompress(char *str,unsigned long len , unsigned long max_len,unsigned long *unc_len)
+{
+    /*the or_len is the original uncompressed length*/
+    int  cmp_status;
+    unsigned long uncomp_len = max_len  ;
+    unsigned char *uncStr = (unsigned char*)malloc(max_len) ;
+    cmp_status = mz_uncompress(uncStr, &uncomp_len, str , len);
+    if (cmp_status != 0)
+    {
+        free(uncStr);
+        return NULL;
+    }
+
+    *unc_len = uncomp_len ;
+    return uncStr ;
+
+}
+
+char* dxCompress(char *str,unsigned long len,unsigned long *comp_len) 
+{
+    /*
+     The compression is achieved via the miniz library that in this situation is part of the cubazip!
+    */ 
+    int  cmp_status;
+    unsigned long cmp_len = mz_compressBound(len);
+    unsigned char *pCmp;
+
+    /* Allocate buffers to hold compressed and uncompressed data.*/
+    pCmp = (unsigned char*)malloc((size_t)cmp_len);
+    if (pCmp == NULL)
+    {
+        return NULL ;
+    }
+
+    /* Compress the string.*/
+    cmp_status = mz_compress(pCmp, &cmp_len, (const unsigned char *)str, len);
+    if (cmp_status != 0)
+    {
+        free(pCmp);
+        return NULL;
+    }
+
+    *comp_len = cmp_len ;
+    return pCmp ;
+}
 
 /*################################################################*/
 

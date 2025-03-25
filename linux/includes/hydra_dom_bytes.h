@@ -653,3 +653,103 @@ bool hdr_domBytesUnCompressStr(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,
     hdr_sys_func_free_params(params) ;
     return true ;
 }
+
+
+bool hdr_domBytesUnCompress(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_VAR for_var,PHDR_VAR *result)
+{
+	/*
+	 The function uncompresses the buffer and returns the uncompressed bytes. The buffer MUST be compressed with the Compress function of the bytes domain.
+	*/
+
+   PHDR_SYS_FUNC_PARAMS params = hdr_sys_func_init_params(inter,token->parameters,1) ;
+   if(params == NULL)
+   {
+	 printf("The system function Bytes.UnCompress(maxLength:Integer):Bytes failed.\n");
+     return true ;
+   }
+    
+    bool type_error = false ;
+    DXLONG64 maxlen = hdr_inter_ret_integer(params->params[0],&type_error) ;
+    if(type_error == true)
+    {
+	  printf("The parameter must be an Integer.\n");
+      goto fail ;
+    }
+
+	if(maxlen <=0 )
+	{
+	   printf("The maxLength must be larger than zero.\n");
+       goto fail ;
+	}
+
+    PHDR_BYTES bytes = (PHDR_BYTES)for_var->obj ;
+	PHDR_BYTES ucomp = NULL ;
+    unsigned long newLen = maxlen ;
+	char *tcomp = dxUnCompress(bytes->bytes,bytes->length,maxlen,&newLen) ;
+	
+	if(tcomp == NULL)
+	{
+	  ucomp = hdr_bytes_create(0) ;
+	}
+    else
+    {
+      ucomp = hdr_bytes_create(0);
+      ucomp->bytes  = tcomp ;
+      ucomp->length = newLen ;
+    }
+
+	*result         = hdr_var_create(ucomp,"",hvf_temporary_ref,NULL) ;
+	(*result)->type = hvt_bytes ;
+
+    success:
+    hdr_sys_func_free_params(params) ;
+    return false ;
+
+    fail : 
+    printf("The system function Bytes.UnCompress(maxLength:Integer):Bytes failed.\n");
+    hdr_sys_func_free_params(params) ;
+    return true ;
+}
+
+bool hdr_domBytesCompress(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_VAR for_var,PHDR_VAR *result)
+{
+	/*
+	 The function compresses the bytes and returns a new bytes object with the compressed bytes.
+	*/
+
+   PHDR_SYS_FUNC_PARAMS params = hdr_sys_func_init_params(inter,token->parameters,0) ;
+   if(params == NULL)
+   {
+	 printf("The system function Bytes.Compress():Bytes failed.\n");
+     return true ;
+   }
+
+    PHDR_BYTES src     = (PHDR_BYTES)for_var->obj ;
+	DXLONG64   compLen = 0      ;
+	PHDR_BYTES bt      = NULL   ; 
+    char * tbt = dxCompress(src->bytes,src->length,&compLen) ;
+	if(tbt == NULL)
+	{
+	  bt = hdr_bytes_create(0) ;
+	}	
+    else
+    {
+     bt         = hdr_bytes_create(0) ;
+     bt->bytes  = tbt                 ;
+     bt->length = compLen             ;
+    }
+	
+	*result         = hdr_var_create(bt,"",hvf_temporary_ref,NULL) ;
+	(*result)->type = hvt_bytes ;
+
+    success:
+    hdr_sys_func_free_params(params) ;
+    return false ;
+
+    fail : 
+    printf("The system function Bytes.Compress():Bytes failed.\n");
+    hdr_sys_func_free_params(params) ;
+    return true ;
+}
+
+
