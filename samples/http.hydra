@@ -22,7 +22,7 @@
 #       : support gzip  
 
 
-###This object is not thread safe do not try to simultaneously use it from different threads
+###This object is not thread safe, do not try to simultaneously use it from different threads
 #
 ####Functions#################################### 
 #ConstrFromUrl(in->$url,out->host,out->query):Boolean -> break the url to the host and the query parts. 
@@ -30,7 +30,7 @@
 #
 #################################################
 
-$__DUMP_FILE = "D:\MyProjects\WORK\PROJECTS\EshopExporters\woocommere\buffers.log";
+$__DUMP_FILE = Hydra.ScriptPath()+"/dump.log";
 
 obj HTTP
 {
@@ -808,13 +808,16 @@ func _get_trans_type($hdr_buff,$chunked,$cont_len)?Boolean out->$chunked out->$c
 {
   #return the transmition type
   #find the Transfer-Encoding
+  #well the headers are not case sensitive as i thought xD 
+  #we will check for two version only the Transfer-Encoding  and the transfer-encoding
   $strval = RawHeaderValue("Transfer-Encoding",$hdr_buff) ;
+  if($strval == "") $strval = RawHeaderValue("transfer-encoding",$hdr_buff) ;
   if($strval != "")
   {
 	if($strval == "chunked") $chunked = true ;
 	else
 	   {
-		 echo("HTTP._receive_load -> System Error. This Version of the HTTP object does not support other Transfer-Encoding than chunked");
+		 echo("HTTP._get_trans_type -> System Error. This Version of the HTTP object does not support other Transfer-Encoding than chunked");
 		 return false      ;
 	   }
    }
@@ -823,19 +826,20 @@ func _get_trans_type($hdr_buff,$chunked,$cont_len)?Boolean out->$chunked out->$c
 		#search for the content length
 		$error = "" ;
 		$strval = RawHeaderValue("Content-Length",$hdr_buff) ;
+		if($strval == "") $strval = RawHeaderValue("content-length",$hdr_buff) ;
 		if($strval != "")
 		{
 			$tmpint = $strval.ToInteger($error) ;
 			if($error == "") $cont_len = $tmpint ;
 			else
 			{
-				echo("HTTP._receive_load -> The Content-Length header was found but an erroneous value was set");
+				echo("HTTP._get_trans_type -> The Content-Length header was found but an erroneous value was set");
 				return false    ;
 			 }
 		 }
 		  else
 		     {
-			    echo("HTTP._receive_load -> Neither the Content-Length or Transfer-Encoding was found in the headers");
+			    echo("HTTP._get_trans_type -> Neither the Content-Length or Transfer-Encoding was found in the headers");
 				return false    ;
 			 }
 	}
