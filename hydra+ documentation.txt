@@ -1331,7 +1331,7 @@ Copy the $bytes to the caller , starting from $source_start , put them in the de
 and continue until the $source_end.
 
 .FromUTF8($string:String)
-Fills the bytes with the bytes of the string (the function release and realocate the Bytes).
+Fills the bytes with the bytes of the string (the function releases and realocates the Bytes).
 
 .ToUTF8(byte_len) : String 
 Returns the bytes as a utf8 string, if the byte_len is smaller than 0 then all the bytes will be represented as a UTF8 string.
@@ -1359,6 +1359,15 @@ The maxLength is the maximun buffer length that will be used for the uncompressi
 The function cannot return a string that when uncompressed is bigger than the maxLength.
 In case that the string is bigger than the maxLength , the function will return 
 the string bytes until maxLength.
+
+.Compress():Bytes
+The function compress the bytes and returns a new bytes object with the compressed bytes.
+
+.UnCompress(maxLength:Integer):Bytes
+The function uncompresses the bytes (must have been compressed with the .Compress function of the domain)
+and returns a new bytes objects with the uncompressed bytes.
+The function return a bytes object with length smaller or equal to maxLength. If the uncompressed data is 
+larger than maxLength bytes then the returned bytes will be truncated to maxLength bytes.  
 
 -- Domain [File] --
  
@@ -1400,7 +1409,6 @@ The function deletes all the contents of the file, and make it zero size.
 
 fileExists($file_name):Boolean
 The function returns true if the file exists , or false if the file does not exists.
-
 
 -- Domain [TCP Client] --
  
@@ -1678,10 +1686,10 @@ The function returns the id of the thread. If the function is called from the ma
 emptyFile($filename:String)
 The function set the size of the given file to zero.
 
-fileExist($filename:String):Boolean
+fileExists($filename:String):Boolean
 The function returns true if the given file exists or false if the file does not exists.
 
-dirExist($dirname:String):Boolean
+dirExists($dirname:String):Boolean
 The function returns true if the given directory exists or false if the directory does not exists.
 
 createDir($dir:String):Boolean
@@ -1712,6 +1720,15 @@ is true then the function will search all the directory tree. In success returns
 getFilesDirs($dirName : String , out->$fileList : StringList , $recursive : Boolean):Boolean
 The function retrieves the files and directories in the $dirName and stores them in the $fileList. If the $recursive
 is true then the function will search all the directory tree. In success returns true else returns false.
+
+deleteFile($filename:String):Boolean
+The function returns true if the file was deleted successfuly or false otherwise.
+
+deleteDir($dirname:String):Boolean
+The function returns true if the directory was deleted successfuly or false otherwise.
+
+emptyDir($dirname:String):Boolean
+The function returns true if the directorys contents was deleted or false otherwise.
 
 dateToPOSIX($date : String as [YYYY-MM-DD 00:00:00]) : POSIX time
 The function returns an Integer that represents a POSIX time
