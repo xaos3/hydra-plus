@@ -1915,7 +1915,18 @@ bool hdr_inter_handle_function(PHDR_INTERPRETER inter ,PHDR_COMPLEX_TOKEN token,
 			*/
 			inter->curr_obj = (PHDR_OBJECT_INSTANCE)for_var->obj ;
 			/*first check for the special class functions*/
-			if(hdr_inter_fast_str(token->ID, "Free", 4) == true) return hdr_domClassReleaseMem(for_var);
+			if(hdr_inter_fast_str(token->ID, "Free", 4) == true) 
+			{
+				/*
+				  2025-05-22 the previous version of this code was exited with out setting the inter->curr_obj to NULL
+				  causing hydra+ to throw a violation error if in the next instructions a function call was made!
+				  To find this bug I spent 8 solid hours and in the searching of it a found 3 others. 
+				  This bug is classified as a dragon , not because it was hard to fix , but it was hard to find 
+				  without the debugger!
+				*/
+				inter->curr_obj = NULL ;
+				return hdr_domClassReleaseMem(for_var);
+			}
 			/*********************************************/
 			enum hdr_user_func_result res = hdr_run_user_function(inter,token,result,false) ;
 			/*restore the curr_obj as the function ended*/

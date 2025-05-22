@@ -1919,6 +1919,7 @@ PDX_HASH_TABLE dx_HashCreateTable(uint32_t max_buckets)
 PDX_HASH_TABLE dx_HashDestroyTable(PDX_HASH_TABLE table, hash_free_custom_object free_func)
 {
 	//destroy the table , NOT the object inside the PDXL_OBJECT buckets , these must be destroyed by the calling program
+	//or the free_func
 	//return always NULL
 	if(table == NULL) return NULL ;
 	for(uint32_t i = 0; i < table->length;i++)

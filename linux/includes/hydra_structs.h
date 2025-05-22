@@ -437,7 +437,7 @@ PHDR_VAR hdr_var_free(PHDR_VAR var)
 	if (var == NULL) return NULL;
 	dx_string_free(var->name);
 
-	//if(var->is_ref == false)
+	//if(var->is_ref == false) /*this is obsolete in here !*/
 	//{
 		/*
 		  a small memory managment to avoid access violation when try to free already freed memory
@@ -510,7 +510,10 @@ PHDR_VAR hdr_var_free(PHDR_VAR var)
 			case hvt_complex_string			: { dx_stringlist_free((PDX_STRINGLIST)var->obj); }break;
 			case hvt_complex_string_resolve : { hdr_res_str_free((PHDR_COMPLEX_STR_RES)var->obj);}break;
 			case hvt_unicode_string			: { dx_string_free((PDX_STRING)var->obj);}break;
-			case hvt_object					: { hdr_object_class_free((PHDR_OBJECT_CLASS)var->obj); }break;
+			case hvt_object					: 
+			                                  {
+				                                 hdr_object_class_free((PHDR_OBJECT_CLASS)var->obj); 
+			                                   }break;
 
 		}
 	  
@@ -1442,12 +1445,12 @@ PHDR_CUSTOM_FUNCTION hdr_custom_function_free(PHDR_CUSTOM_FUNCTION func)
 	   free all the memory of the func returns NULL
 	   29-08-2024 A problem arise along with the added complexity in object functions in async
 	   functions if a syntax error occurs. As the normal program flow is interupted ,
-	   there is the posibility the function blocks to not invalidate their variables 
+	   there is the posibility that the function blocks do not invalidate their variables 
 	   as the proper routines will never run. So we will check in this function that is 
 	   running universally the state of a variable and we will set its object appropriately 
 	 */
 
-	hdr_explicit_invalidate_vars(func) ;
+	hdr_explicit_invalidate_vars(func)      ;
 
 	hdr_block_free(func->code)				;
 	dx_stringlist_free(func->parameters)	;
@@ -1579,7 +1582,7 @@ PHDR_OBJECT_CLASS hdr_object_class_free(PHDR_OBJECT_CLASS obj)
 	/*release all the memory of the object or the object class  and returns NULL*/
 	if(obj == NULL) return NULL ;
 	dx_string_free(obj->class_name)   ;
-	hdr_block_free(obj->code) ;
+	hdr_block_free(obj->code) ;	
 	hdr_custom_functions_list_free(obj->functions) ;
 	free(obj);
 	return NULL;
@@ -1627,7 +1630,6 @@ PHDR_OBJECT_CLASS hdr_object_class_list_find(PHDR_OBJECT_CLASS_LIST list, PDX_ST
 	if(obj == NULL) return NULL ;
 	return (PHDR_OBJECT_CLASS)obj->obj ;
 }
-
 
 
 
@@ -2136,7 +2138,8 @@ void hdr_explicit_invalidate_var_list(PHDR_VAR_LIST var_list)
 			{
 				if((var->type == hvt_simple_string)||(var->type == hvt_simple_string_bcktck))
 					{
-					  /*this will be handled in the function destruction*/
+					  /* BUG FIX 22-05-2025 check if its a reference and if it is invalidate it, else the async function delete the memory*/
+					  if(var->is_ref == true) hdr_var_release_obj(var) ;
 					}
 					else
 						{

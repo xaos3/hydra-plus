@@ -181,10 +181,19 @@ bool hdr_async_setup_params(PHDR_INTERPRETER caller_inter,PHDR_CUSTOM_FUNCTION f
 		   The ppointer has a key that is the actual name of the parameter(but for the threads is a reference!) and an empty obj that 
 		   for the threads must be set to a variable that will be shallow copied
 		  */
+		  /*
+		    2025-05-22 we do not permit literals to be passed as parameters in an async function anymore!
+		    it makes the code more complicated for the memory release and its not actually a very good practise
+		  */
+          if(rparam->var_ref == hvf_temporary_ref_user_func)
+		  {
+		   printf("Fatal Error -> Line : %d The [async] command does not permit a literal or an expression to be passed as a parameter. Use a variable instead.\n", caller_inter->current_instr->instr->line);
+		   return false ;
+		  }
 		  PHDR_VAR pvar = (PHDR_VAR)ppointer->obj ;
 		  hdr_var_copy_shallow(rparam,pvar) ;
-		  /*THIS VARIABLE MUST NOT RELEASE ITS OBJECT. IS A REFERENCE!*/
-		  pvar->is_ref = true ;
+		  pvar->is_ref = true ; /*this is mandatory for the async to invalidate its parameter because all the parameters in async mode is references to objects*/
+		 
 	  }
 	  indx++ ;
 	  node = node->right ;
@@ -204,6 +213,8 @@ PDX_LIST hdr_async_release_params(PDX_LIST params)
 
 enum exec_state hdr_async_run_function(PHDR_INTERPRETER inter , PHDR_CUSTOM_FUNCTION func ,PHDR_COMPLEX_TOKEN token, PDX_STRING thread_id) 
 {
+	/*insert a delay to protect the weird crash that is produced when the creation of the threads is too fast*/
+	dxSleep(10) ;
 	PHDR_CUSTOM_FUNCTION async_func = hdr_async_custom_function_copy(inter,func) ; 
 	/*setup the parameters for the function*/
 	PDX_LIST async_params = dx_list_create_list() ; 
