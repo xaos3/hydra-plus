@@ -50,6 +50,7 @@ There is an exception in this rule. If a function is executed as [async], then t
 are not an absolute reference to the variable BUT a reference to the [object] of the variable.
 This means that an [async] function can alter the values of the parameters and the values will be changed 
 globally to the script EXCEPT the [Numeric],[CodePoint] and [Boolean] types.   
+Furthermore an async function cannot have a literal or an expression as a parameter, only variables can be passed as parameters.
 
 - If a constructor is used (a [Domain] function or generally a function that creates a new object), 
 the new object will be assigned to the target variable. If the said variable is assigned to another variable, 
@@ -1375,7 +1376,7 @@ File.Open($file_name, mode : _write | _read , doCreate : boolean, $ret : String)
 Opens a file, create and return a new file object. If the doCreate is true, then if the file does not exists it will be created.
 The $ret will be filled with the error code or it will be returned empty in success. 
 NOTE : If the file exists then it will open for append. 
-To clear a file for its contents , use prior the .open the emptyFile()(see later) function to clear the file and make it zero size 
+To clear a file of its contents , use prior the [.open] the emptyFile()(see later) function to clear the file and make it zero size 
 
 -- Functions --
 
