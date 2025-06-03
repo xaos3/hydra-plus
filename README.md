@@ -15,7 +15,7 @@ Hydra+ is a single executable (see later in the text about dependencies) that pa
 
 I will admit that some times my brain make things hard for me. I have the need to control the tools that i use (thankfully with limits), and
 i truly hate the bloat. The idea about Hydra+ came to me when I had to create a very small program to manipulate and export some data in a Client machine, and i realise
-that i trully hate the bloat of PHP , Python (i hate Python for alot more reasons) and other languages that needs so many libraries to do 
+that i trully hate the bloat of PHP , Python (i hate Python for a lot more reasons) and other languages that needs so many libraries to do 
 a very simple job. Another problem was that while i enjoy to write in Free Pascal or C (Hydra+ is created in C after all) when in the client , if i need to make some changes 
 to the source code i have to do it in a machine with all the tools chain present. I hate this too. I would write in power shell in windows or 
 in bash in Linux BUT... why the script code is so ugly? It's only me that see this? Anyhow I decided to create a language that will have the capabilities that
@@ -24,7 +24,7 @@ I use the most in my everyday work life (so life in general !).
 ## How Hydra+ was created
 
 Hydra+ code is pure C. I dislike "smart" code, so my code is the simplest (most of the time) C code that you can find. No fancy syntax, no exotic things.
-The source code is create by me in its entirety, except the third party libraries for :
+The source code is created by me in its entirety, except the third party libraries for :
 SSL support (Wolf SSL) 
 Threads support (cthreads)
 base64 support (by joseph werle),
@@ -45,38 +45,38 @@ I will mention the uses that I have (and thus created) for Hydra+ :
 - Creating web services and APIS in servers.
 - Creating complex webservers for server side applications
 - Creating importers for databases from raw text
-- Creating middlewares from one platform to another (ERP application to Eshop)
+- Creating middlewares from one platform to another (for example, ERP application to Eshop)
 
 ## Hydra+ advantages
 
-- Very small executable (~3MB), no third party dependencies when compiled (except Linux, see later in the text)
+- Very small executable (~3MB), no third party dependencies after compiled (except Linux, see later in the text)
 - Native support of UTF8 strings. (and the only ones supported xD) 
 - Native support of MariaDB
 - Native support of ODBC connections (tested for SQL SERVER)
 - Native support for threads via asynchronous functions
 - Native support of SSL and plain TCP connections, client and server
 - Few language keywords , easy to learn
-- Can obfuscate it's code with an internal key, that make the code incomprehensible to the human eye (hydra_loader.h line 61 change the key!!)
+- Can obfuscate it's code with an internal key, that make the code incomprehensible to the human eye (hydra_loader.h line 61, change the key!!)
 - Handsome creator (this is a joke)
 
 ## Hydra+ disadvantages
 
-- To support new functions and operations the source code must change and the Hydra+ must recompiled.
+- To support new functions and operations the source code must change and the Hydra+ must be recompiled.
   I do not support new functions via libraries. I may do it in the future but it will defeat the purpose of the
-  single and small executable. I'm in the fence about it.
+  single and small executable. I'm in the fence about this.
 - Limited support. I'm the only one that write code for this language. I add functions add new features and fix bugs
-  when I need them for my work. So if a new feature is needed but i do not is very likely that I never will implement it.
+  when I need them for my work. So if a new feature is needed but i do not, is very likely that I never will implement it.
 - Hidden bugs or memory leaks. I repeat that I'm the only one writing code for Hydra+ and I have hand written all the structures , lists ,
-  logic , loader, interpreter, parser etc. This means that is very possible that catastrophic bugs are lurking. I have test Hydra+ for at least 3
-  months in production, in small applications and i have fix a lot of memory leaks and bugs (mostly for the asynchronous operations). But
+  logic , loader, interpreter, parser etc. This means that is very possible that catastrophic bugs are lurking. I have test Hydra+ for at least 8
+  months in production, in small applications and I have fix a lot of memory leaks and bugs (mostly for the asynchronous operations). But
   I'm not confident that the worst has passed!
-- Execute speed (maybe?). I did not have made extensive benchmarks (yet , no time!) , but the interpretation (the code is stored in a kind of abstract tree)
+- Execute speed (maybe?). I did not have made extensive benchmarks (yet , no time!) , but the interpretation (the code is stored in a kind of an abstract tree)
   is a lot slower than PHP's (when tested with 10.000.000 calculation with no input/output). Of course in real operation , when you write/read in disk or send data via sockets
   the performance (in some limited test I have done) is similar with PHP, because the actual time consuming operations are these and not
   the code interpretation. If anyone do any benchmark please inform me! 
 - Hydra+ is very verbose, as it has limited keywords and none of the shortcut syntaxs, like for example the "foreach" of PHP. 
 - Hydra+ imposes some restrictions in scipts like that the include directive can be present only in the top of the main script and nowere else.
-  Some of these restrictions (that you will find in the documentation) maybe seems weird and very easy to implement. They trully are. BUT some things tha I have do is for forcing me to write cleaner code! 
+  Some of these restrictions (that you will find in the documentation) maybe seems weird and very easy to implement the restricted functionality. They trully are. BUT some things that I have do is for forcing me to write cleaner code! 
 - A lot of other things to consider!
 
 ## Writing Hydra+ scripts
