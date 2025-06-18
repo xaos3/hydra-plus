@@ -1,4 +1,4 @@
-Hydra+ is a small interpreter language that can be compiled for Windows and Linux platforms.
+Hydra+ is a small interpreted language that can be compiled for Windows and Linux platforms.
 As for now (05-01-2025) this repository hosts the Linux version of the source code , but when i have the 
 time i will upload the windows version too. If you want to test the windows version , you can download a precompiled 
 Hydra+ Interpreter at the http://deus-ex.gr/downloads/hydra+Win.zip
