@@ -14,14 +14,14 @@ datatypes, functions and syntax of the language.
 
 --- Technical Notes ---
 
-The Hydra+ is interpretered by its own simple interpreter created in the most simple C syntax.
+The Hydra+ is interpretered by its own interpreter created in the most simple C syntax.
 The interpreter is not optimized for super fast execution, and it is a type of an Abstract Syntax Tree. 
 The interpreter is not optimized, because the time constrains for its creation were very strict , 
 and I followed the path of the least resistant in coding. 
 For example, the variables and the functions in the script, are stored with their actual names
-and alot of CPU time is consumed in string comparisons and parsing trees.
+and a lot of CPU time is consumed in string comparisons and parsing trees.
 
-Ofcourse there is another reason why I did not optimized the interpeter and maybe i will not optimized it 
+Of course there is another reason why I did not optimized the interpeter and maybe I will not optimized it 
 in the future, Hydra+ is designed to consumes most of its CPU time in network actions and database queries, 
 so the actual interpretation time of the instructions is not critical.
 
@@ -30,7 +30,7 @@ consumes ~2 seconds. The same script in PHP consumes 100ms. The difference is hu
 But if you use an echo function to output every result,the two scripts consume almost the same time,
 because the echo function has a huge overhead in comparison with the instruction evaluation. The same
 apply with other complex actions , like accepting connections, reading/writing from/to disk,
-large string concatenation etc.  
+large string concatenations etc.  
 
 The Hydra+ has two important parts, the loader and the interpreter. The loader loads the script and its includes,
 deobfuscate the obfuscated code (if exists) and check the script for the syntax errors that are detectable in this phase. 
@@ -49,13 +49,14 @@ So beware of altering the values and states.
 There is an exception in this rule. If a function is executed as [async], then the parameters of the function 
 are not an absolute reference to the variable BUT a reference to the [object] of the variable.
 This means that an [async] function can alter the values of the parameters and the values will be changed 
-globally to the script EXCEPT the [Numeric],[CodePoint] and [Boolean] types.   
+globally to the script EXCEPT the [Numeric],[CodePoint] and [Boolean] types,because they are not actual
+[objects] in the variable but more like a [property].   
 Furthermore an async function cannot have a literal or an expression as a parameter, only variables can be passed as parameters.
 
 - If a constructor is used (a [Domain] function or generally a function that creates a new object), 
 the new object will be assigned to the target variable. If the said variable is assigned to another variable, 
 the internal object will be referenced in the second variable. So if you dispose the actual object,
-then both variables will MUST not being accessed because their object will be invalid. (They can reassigned ofcourse and reused).
+then both variables will MUST not being accessed because their object will be invalid. (They can reassigned of course and reused).
 
 - The [Simple String] type that we will referenced them as [String] are managed. Every assigment or creation,
 creates a new copy of the string , and the memory is handled and is freed automatically internally. 
@@ -67,9 +68,10 @@ This makes the simple strings inefficient, but good enough for most of the opera
 
 Warning : Hydra+ runs a simple algorithm when terminates to clean up the memory avoiding weird [access violation] errors, 
 in case of existing cross references between variables that the script code has not handled 
-(released or freed when are not used any more). In actuality no impact in memory consumption or in efficiency 
+(released or freed when are not used any more).
+In actuality no impact in memory consumption or in efficiency 
 this condition has, as this is a problem when the Hydra+ is terminating, so a non issue, because we can skip 
-the memory clean up all together. But in the future may i make it possible to call a full Hydra+ object to execute a script
+the memory clean up all together. But in the future may I make it possible to call a full Hydra+ object to execute a script
 from another Hydra+ object and then an access violation or a moderate memory leak will be very bad.
 
 Memory Allocation and Consumption
@@ -78,7 +80,7 @@ Memory Allocation and Consumption
 memory foorprint is small, in operations with large strings and files, Hydra+ can be very memory consuming.
 This is because when a string is allocated and passed in variables or in calculations,
 then all the (simple) strings memory is copied. So the memory we need for one string is multiplied when the string is proccesed.
-Ofcourse this memory will be released afterwards and the memory consumption will just spike for some time 
+Of course this memory will be released afterwards and the memory consumption will just spike for some time 
 before returning to the base.
 Another memory consuming point, is when the script calls a system function that makes some proccessing in a 
 large string that loads from a file. For example, the system functions that loads the contents from a file to a string,
@@ -86,12 +88,12 @@ does not use the file as a stream to read bytes to a limited buffer, but the fil
 and an appropriate large buffer is created to load all the contents of the file at once.
 In most of the cases this is not a real problem as the memory of the modern machines are in the order of GigaBytes,
 but for small linux distros with memory in the order of few megabytes, the program must calculate precisely the memory 
-that Hydra+ will need. Ofcourse the programmer can create its own functions to load the file to a [Bytes] object as they see fit.
+that Hydra+ will need. Of course the programmer can create its own functions to load the file to a [Bytes] object as they see fit.
 
 Another point of consideration is the [Dataset] type.
 A dataset is an object that holds the results of a [select] query. When the query executes succesfully,
 Hydra+ loads ALL the results in the dataset from the database driver to the local [Hydra+] memory.
-So very large results will occupy alot of memory.
+So very large results will occupy a lot of memory.
 
 --- Hydra+ release model --
 
@@ -137,7 +139,7 @@ Most notable ones :
 
 -The function name is coupled with its parenthesis, for example the echo($some_string) is valid,
 but the echo ($some_string) is not. (Notice the space after the echo).
-That happens because it is possible a token to be acompanied by a calculation inside a parenthesis pair.
+That happens because it is possible a [token] to be acompanied by a calculation inside a parenthesis pair.
 So function names are coupled with its parenthesis to be easily recognized by the interpreter. 
 
 Another important syntax limitation is that the interpreter does not resolve variables that
@@ -149,7 +151,7 @@ To use the returned variables assign them first. Example : $var = someFunction()
 
 Yes the above syntax it is forbidden. Why you ask? I have suffer while trying to see and understand syntaxes in languages
 like javascript with so many chained functions that make you dizzy. 
-I hate it. I use it ofcourse when i write code because is really convinient. But i hate it so in my language
+I hate it. I use it ofcourse when I write code because is really convinient. But I hate it so in my language
 I forbade it :D !      
 
 -String encoding
@@ -178,7 +180,7 @@ A variable in Hydra+ can be visible in all the blocks that are nested in the blo
 the children block will see and modify the variable of the parent (or grandparent) block.
 
 -Global Scope
-Variables that are declared as [Globals] can be accessed by any any and all entities in the script.(See later in this text).  
+Variables that are declared as [Globals] can be accessed by any and all entities in the script.(See later in this text).  
 
 Manipulate the Scope
 
@@ -220,7 +222,7 @@ needed to free 10 different objects in 10 different branches , then this syntax 
 
 The [Simple Strings] in Hydra+ are managed by the interpreter, meaning that we have not to worry about freeing their memory.
 This is achieved by creating internally a copy of the string and dispose it after its use. This creates the following quirk
-that i consider inconsequential and thus is will not rectified (at least for now as my time is very limited.)
+that I consider inconsequential and thus is not rectified (at least for now as my time is very limited.)
 
 Quirk : 
 When a list have an element that is a simple string, for example $list[] = "hello"
@@ -236,7 +238,7 @@ the copy will be destroyed because it will not be assigned back to the list , an
 This is not a BUG!!! It is a feature!!!!!!  xD
 
 
-NOTE ! Hydra+ is lazy. Because is lazy, when a function exits, its internal variables does not clear their values.
+NOTE ! Hydra+ is lazy. Because it is lazy, when a function exits, its internal variables does not clear their values.
 This is not a problem, as the next time that the function will run (if not detached of course, see the [detach] instruction)
 the previous values will be overwrited by the function code that will run. There is an exception case though. 
 If for example you have the following code (we presume that the variables are being declared) : 
@@ -286,19 +288,23 @@ I decided to left this error in place , as it can help to eliminate some memory 
 -Console 
 
 Hydra+ supports UTF8 output to the console in Windows and Linux. For now there is not support for input,
-except of the special command line parameters that sets variables in the script with values from the command.
+except of the special [command line] parameters that sets variables in the script with values from the command.
 
 -Execute a Script
 
 To execute a Hydra+ script, you can write to the console or in a OS script something like the following :
-  hydra+ mainscript.hydra 
+
+hydra+ mainscript.hydra 
+
 The mainscript.hydra will be executed.
 
 -Create an Obfuscated File
 
-Hydra+ supports scripts that are encrypted with the internal key that the Hydra+ has compiled with.
+Hydra+ supports scripts that are encrypted with the internal key that the Hydra+ was compiled with.
 To create an obfuscated file you can run the command : 
+
 Hydra+ -o somescript.hydra
+
 The Hydra+ reads the somescript.hydra and creates a new obfuscated file in the same dir, with the same name
 but with the added extension [.obf]. For the previous example the file that will be created is the : somescript.hydra.obf 
 
@@ -306,9 +312,9 @@ Note :
 An obfuscated script is a script that Hydra+ can load and executes either as a main script
 or as a included file, but the actual file has been encrypted with the internal Hydra+ encryption key.
 WARNING ! This obfuscation does not make the script 100% safe of reading. A competent programmer
-can just monitor the execution of the [Hydra+] in debuger or on a dissasembler and retieve
+can just monitor the execution of the [Hydra+] in debuger or on a dissasembler and retrieve
 the actual plain text of the script or the internal key with ease. This is more for protection
-against tampering of the code from unskilled persons.   
+against tampering of the code, from unskilled persons.   
 
 -Create a Monolothic File
 
@@ -316,7 +322,9 @@ A Hydra+ project has a structure, more or less, as a source code tree. If a proj
 all this files has to be present for the script to run succesfully. Some times though its much more convinient
 to have one single file for the script to deploy and run. Hydra+ can create a monolithic file from the main script file
 and its includes, ready for execution. To create a monolithic file run the command :
+
 hydra+ -c c:\myapp\main.hydra 
+
 The above command will create a main.hydra.comp file and a main.hydra.obf file.
 Both of the files are executable by [Hydra+]. The .comp file is the monolithic file with human readable characters
 and the .obf is the monolithic file with its contents obfuscated.
@@ -329,12 +337,14 @@ hydra+ -e c:\myapp\main.hydra
 The above command will create a main.hydra.comp file, a main.hydra.obf file and a main.hydra.comp.exe file.
 The main.hydra.comp.exe is a self executing file that can be run in Windows and Linux (depends of the target OS that was created)
 by itself. 
+
 Note : In Linux the self executing script needs the runtime libraries that Hydra+ itself needs to run.
 Note : The .exe extension is not mandatory for Linux and if you want you can change it as you see fit.
 Note : If you use in the code the Hydra.ScriptPath() then you have to supply a path as the virtual main script path.
-for example if a self executable script uses the Hydra.ScriptPath() to retrieve the /home/app directory
+
+for example, if a self executable script uses the Hydra.ScriptPath() to retrieve the /home/app directory
 then you can execute the script as ./myscript /home/app/
-WARNING! The virtual main script path MUST end with a "/" or in windows with a "/" or "\" else
+WARNING! The virtual main script path MUST end with a "/" in Linux or with a "\" in Windows else
 the string before the last / or \ will be returned.
 
 -Pass Parameters from the Command Line
@@ -378,7 +388,7 @@ include "%hydra_install_dir%functions.hydra" ;
 
 
 NOTE :
-The paths that the Hydra+ use for the above directives, are retrieved by the command line that executed the [Hydra+].
+The paths that the Hydra+ uses for the above directives, are retrieved by the command line that executed the [Hydra+].
 So if the command line does not have the full paths of the executable or the script , then maybe the result of this directives
 will not be the ones desired.
 
@@ -412,11 +422,11 @@ Examples :
 
 The variables in Hydra+ are being declared with the '$' character as a prefix, for example, $var1 = 10 ;
 When a variable is declared , in the same time its type must be set. For example , to create a [String] variable, we have to 
-write : $var = "" ; or '$var = ``; The syntax $var; is not valid.    
+write : $var = "" ; or $var = ``; The syntax $var; is not valid.    
 
 -Variable types
  
- undefined : A special type analogous to NULL. Some variable types when are freed manually their type reverts to undefined.
+ undefined : A special type analogous to NULL. Some variable types when are freed manually, their type reverts to undefined.
  
  pointer   : The variable stores a native pointer. To create a variable that is used as a pointer use the syntax 
  $var = pointer(); The pointer type is used by some native Hydra+ functions to pass parameters or store 
@@ -447,15 +457,14 @@ write : $var = "" ; or '$var = ``; The syntax $var; is not valid.
  The index that will be used in the element insertion MUST be a string. This list has superior performance in speed 
  in element retrieval than the simple list.
 						
- http client          : A simple http client for convinience . THIS IS NOT IMPLEMENTED YET(and maybe will never be
- because its very easy to do http request in hydra+).
+ http client          : THIS WILL BE NOT BE IMPLEMENTED. fOR A HTTP/HTTPS CLIENT SEE THE HYDRA+ LIBRARY THAT IMPLEMENTS IT IN HYDRA+ NATIVE CODE.
 
- database connection  : A database connection object that is used to connect in a supported database for executing queries
+ database connection  : A database connection object that is used to connect in a supported database, for executing queries
  and retrieving datasets.
 
  dataset              : A dataset that has been created from a database object and can be accessed as a list.
  
- tcp socket           : A tcp socket that can connect to a server.
+ tcp client           : A tcp socket that can connect to a server.
  
  tcp server           : A tcp server socket for accepting connections.
  
@@ -492,7 +501,7 @@ OR before the call of the functions or objects that they will used them. NOTE : 
 
 -Evaluations 
 
-Supported arithmetic operators : +-*/%^
+Supported arithmetic operators : +-*/ %(modulo) ^(power)
 Supported string operators : + (concatenation)
 Supported comparisons string operators : != (different) == (equal)
 Supported comparison operators for numeric : < > <= >= != ==
@@ -589,7 +598,7 @@ func function_name($param1,$param2,.,.,.,.){function body}
 
 A function can return a variable of any type. Every parameter in the function is passed as an absolute reference
 to the variable (except when the parameter is in fact a calculated expression) and not as a copy of the 
-object or a reference of the object of the variable. So be cautious with the memory deallocation and the 
+object or a reference of the object of the variable (except in an async see the async section). So be cautious with the memory deallocation and the 
 altering of the parameters values.
 
 Example :
@@ -619,14 +628,14 @@ func Change_Param_Value($val)
 
 -Executing a function from a string
 
-Very often is very usefull to execute a function based in some conditions that is not known before hand.
+Very often is very usefull to execute a function based in some conditions that is not known beforehand.
 Hydra+ does not support function pointers , as its whole design is heavily based in string translation for executing code.
 But it offers the next best thing. The special command [asfunc]. The command [asfunc] needs a string
 that describes a valid user function and it execute it. For example , the following instructions are all valid
-(given than the function are actually declared in the script).
+(given than the functions are actually declared in the script).
   
 asfunc "myfunc()";
-asfunc "myfunc($param1,$param2)";
+asfunc "myfunc1($param1,$param2)";
 $var1="myfunc()" ; asfunc $var1 ;
 
 Keep in mind that when you execute a function in string form , the function that will be executed will
@@ -648,7 +657,7 @@ An async function does not return any value after its execution, and if returns,
 variables and their own parameters (with some limitations. See earlier in the document about the parameters references).
 Hydra+ has a set of system functions that return and control threads and its infos.(see later in the document).
 
-Syntax : async "thread id" @thefunction($params....)
+Syntax : async $thread_id @thefunction($params....)
 
 After the [async] instruction, you have to set a string as the thread id. 
 This can be very important for checking the status of the function or to send special commands. 
@@ -677,7 +686,7 @@ be created and when you try to retrieve the thread's info you will retrieve alwa
 
 Summary of thread related functions and special commands : 
 
-async "some id" @user_function();
+async $some_id @user_function();
 terminate "some id"
 message "some string"
 threadInfo("thread id") : List[message,running,error,exist]
@@ -692,9 +701,10 @@ is passed a reference to the variable that is passed as parameter and we will na
 This is not true for the async functions. In the async functions the parameters pass as a ["weak" reference],
 this means that in the function is passed a reference to the object of the variable and not the variable itself.
 This is for practical reasons as there is a lot of problems in shared memory with threads.
-A consequence of this is that any change in the value of the parameter will impact the actual variable as per usual,
-EXCEPT the Numeric variables , the booleans and the code points.
-Because this values are stored to the variable itself and are not stored as object in the variable.
+A consequence of this is that any change in the value of a parameter in an async function will impact 
+the actual variable as per usual, EXCEPT the Numeric variables , the booleans and the code points.
+Because this values are stored to the variable itself more as [properties]
+and not as [objects] in the variable.
 I do not see any true merit to write more code to mitigate this condition as it is discouraged to alter global memory 
 in the async functions, albeit there is the mechanisms to achieve this.
 After all if the async gets as a parameter a List of some type or a user defined object (see later in the text)
@@ -713,7 +723,7 @@ An object is a simple collection of variables and custom functions.
 
 Syntax : 
 An object class can be declared in the script and then a script can create as many instances of the object it needs.
-An object instance put some burden in the memory because i opted for a simple design and the instance will be a copy 
+An object instance put some burden in the memory because I opted for a simple design and the instance will be a copy 
 of all the functions and all the variables of the class object. 
 
 An object function is executed by the current interpreter like a normal custom function and it can return a value as usually.
@@ -724,7 +734,7 @@ An object function can use the variables and the functions of its object as they
 In the local block of an object function is forbidden to declare a variable with the same name as one of the variable
 members of the object.
 The objects can be dynamically created in the script. For releasing the memory when is not needed a special function
-is added in all objects instances : $obj_instance.Free(); The Free() function releases all the memory that the object occupy.
+is added in all objects instances : $obj_instance.Free(); The Free() function releases all the memory that the object has allocate.
 
 Remember : The object functions cannot be executed as async.
 
@@ -859,6 +869,7 @@ The [concat] creates a string that can concat other strings to its end fast with
 
 The [expand] creates a string that can have the syntax of {$var_name} in its body and can produces 
 a simple string with the variables resolved to their respected values at the time (see the domain function .Expand()). 
+
 Example : $mystr = String.Create("This is a new string",concat); 
 
 
@@ -872,12 +883,12 @@ For the [var_expand] the variables are NOT resolved and the string is returned w
 of the string. 
 
 .Concat($string) 
-The function adds the $string to the caller. The function altehrs the caller and does not return a new string.
+The function adds the $string to the caller. The function alters the caller and does not return a new string.
 This function is valid only for the [concat] or [expand] string types, the simple strings can be concatenated by the [+] operator.
 
 .Expand()
 This function is applicable only for the [var_expand] type of string. When the function is called,
-then the string alter its internal state and expand the variables in the string.
+then the string alters its internal state and expand the variables in the string.
 Every time the function is called the variables are expanding with they current values and the string is changing acordinally.
 
 .ExpandToSimple():String
@@ -886,7 +897,7 @@ a simple string is returned with the variables expanded BUT without changing the
 That means that if you call an .Expand() and then .ToSimple() you will get the string [A]. If then
 the values of the variables change and you call the .ExpandToSimple() you will get the string [B].
 If now you call the .ToSimple() function you will get again the string [A], because the .ExpandToSimple()
-does not alter the internal state of the string.
+does not alters the internal state of the string.
 
 .Assign($str)
 Change the callers value to the $str value.
@@ -1035,12 +1046,12 @@ but it search in reverse (from $indx to 0) .
 
 .Explode($sep:[Simple String]):StringList
 The function explodes the caller to parts based of the $sep as separator and returns a stringlist.
-The separator can be one or multiple characters of the ansi codepage. Examples of separators : [,][->],[=],[==] etc
+The separator can be one or multiple characters. Examples of separators : [,][->],[=],[==] etc
 
 .ExplodeChar($separator : Integer (as char) ):StringList
 The function explodes the caller to parts based of the $seperator as separator and returns a string list.
 This function must be preffered for one byte char separators than [Explode] as it has superior performance.
-For example , for a string ~10ΜΒ with long lines , an .Explode(10) consumes 37 seconds 
+For example , for a string ~10ΜΒ with long lines in a specific machine, an .Explode(10) consumes 37 seconds 
 while the ExplodeChar(10) consumes 0.016 seconds. The difference is great and is mainly because
 [Explode] do a lot of checking for the validity and conversion of the UTF8 encoding and simultaneously
 can use as separators full strings, while 
@@ -1064,7 +1075,7 @@ The function decodes the caller that is encoded to Base64.
 The function is applicable only to [Simple Strings].
 
 .B64DBinary():Bytes
-The function decodes a Base64 string to its binary representation. Ofcourse the data must have binary data before the encoding.
+The function decodes a Base64 string to its binary representation. Ofcourse the data must have been binary data before the encoding.
 The function is applicable only to [Simple Strings].
 
 .Compress():Bytes
@@ -1075,10 +1086,11 @@ The function compresses the string (with zlib) and returns the compressed bytes.
 The function returns a list that is produced from a json formated string.
 All the json string is converted in native Hydra+ objects. The first element of the list
 is the root of the json. The json objects are mapped as following in the list:
-Array -> [Simple List]
-Object -> [Fast List]
-Number -> [Real]
-String -> [Simple String]
+Array   -> [Simple List]
+Object  -> [Fast List]
+Number  -> [Real]
+String  -> [Simple String]
+Boolean -> [Integer]
 
 You can use the typical functions and methods to determine the type of the object , the element count, the value etc.
 Note : Do not forget to start accessing from element 0. For example :
@@ -1208,15 +1220,15 @@ format that is valid for the xmls. See the XML support later in the text.
 The function sets the named index in the given numeric index. 
 
 .ChangeNamedIndex($index : String ,$name : String):Boolean
-The function change the name of the element from $index to $name and return true.
+The function change the name of the element from $index to $name and returns true.
 If the $index does not exists then the return value is false.
 
-.Implode($separator):String
+.Implode($separator:String):String
 Returns a string constructed by the items of the list separated by the separator. 
 If an item is a complex type and cannot be described as string is ommited.
 
 NOTE : The functions that set and change named indexes does not check for duplicates.
-And always changes the first occurence. Is responsibility of the programmer to 
+And always changes the first occurence. It is the responsibility of the programmer to 
 monitor the indexes and their validity.
 
 
@@ -1248,7 +1260,7 @@ Loads the lines from a text file and store them in the stringlist. The stringlis
 Saves the String list contents to a file. Every line of the list
 is followed by a crlf part if the $unixStyle is false or by a lf character if the $unixStyle is true. 
 
-.Implode($separator):String
+.Implode($separator:String):String
 Returns a string constructed by the strings of the list separated by the separator. 
 
 .Clear()
@@ -1335,7 +1347,7 @@ and continue until the $source_end.
 Fills the bytes with the bytes of the string (the function releases and realocates the Bytes).
 
 .ToUTF8(byte_len) : String 
-Returns the bytes as a utf8 string, if the byte_len is smaller than 0 then all the bytes will be represented as a UTF8 string.
+Returns the bytes as an utf8 string, if the byte_len is smaller than 0 then all the bytes will be represented as a UTF8 string.
 If the byte_len is greater than 0 then only these bytes will be represented as a UTF8 string.
 The function does not do any error correction , so if the byte_len cut a utf8 character then this character will be
 corrupted in the result.
@@ -1355,7 +1367,7 @@ returns false.
 The function returns a Bytes type with the xored bytes (with the $key) of the original.
 
 .UnCompressStr(maxLength:Integer):String
-The function uncompress a string that was previously compressed by the .Compress() function.
+The function uncompress a string that was previously compressed by the .Compress() function OF THE STRING DOMAIN.
 The maxLength is the maximun buffer length that will be used for the uncompressing.
 The function cannot return a string that when uncompressed is bigger than the maxLength.
 In case that the string is bigger than the maxLength , the function will return 
@@ -1620,6 +1632,7 @@ Frees all the memory and sets the variable to undefined.
 
 A datarow object can be extracted from a dataset with the indexing syntax of : $dataset[$indx].
 The above syntax will return a [DataRow] object.
+
 WARNING!! After the retrieval and use of the [DataRow] YOU MUST free the object or else a memory leak will be created.
 For example the syntax : echo($dataset[$indx].ID) Will create a memory leak.
 On the contrary the syntax : $row = $dataset[$indx] ; echo($row.ID);$row.Free(); will deallocate all the memory.
@@ -1632,16 +1645,15 @@ the position index like $row[$indx] or the $row["my field name"] syntax.
 Call this function to determine if the object is valid for use .
 
 
-WARNING!!! DO NOT free the dataset that produced a row before free the row. The row create its own memory 
-BUT is linked to the dataset that produced it. If you free the dataset and then try to acces the row Hydra+ will crash 
-with segmentation error. Yes i do not feel like creating a handler for that right now xD.
-
+WARNING!!! DO NOT free the dataset that produced a row before freeing the row. The row create its own memory 
+BUT it is linked to the dataset that produced it. If you free the dataset and then try to access the row,
+Hydra+ will crash with segmentation error. Yes, I do not feel like creating a handler for that right now xD.
 
 
 --- System Functions ---
 
 GetTickCount() : Integer
-Returns the milliseconds from the system start. The value is an 64bit integer.
+Returns the milliseconds from the system start. The value is a 64bit integer.
 
 inc($num : Number)
 Same as the [$num = $num + 1] instruction.
@@ -1671,8 +1683,8 @@ pointer()
 Returns a pointer type variable. Example : $point = pointer();
 
 runExe($exeName:String , $workDir:String , $parametersList:Stringlist,out-> $procId:Pointer,out->$Success:Boolean):String 
-Runs an exe and returns its output. The $procId will be filled with a pointer to the proccess info (reserved for later implementations). 
-If the function fails then the $Success will be set to false else it will be set to true. 
+Runs an exe and returns its output. The $procId will be filled with a pointer to the proccess info 
+(reserved for later implementations). If the function fails then the $Success will be set to false else it will be set to true. 
 
 threadInfo($threadId : String):List 
 The function returns a list with the information of the thread with the specific $threadId (the first in the internal list).
@@ -1766,12 +1778,12 @@ return the difference between the two dates in seconds.
 
 addDays($date : String , $days : Integer(+/-)) : POSIX time
 Add the $days to the $date and returns the date as POSIX time. 
-If the $days is a negative number , the days will be subtract from the date.
+If the $days is a negative number , the days will be subtracted from the date.
 
 datesCompare($base_date : String , $compare_date : String) : [bigger | smaller | equal]
 The function compares the $base_date with the $compare_date and returns one of the following values
 (the values are of the internal type of Integer and can be assigned in a integer variable) 
-bigger , smaller , equal . The return value is applied in the $base_date, meaning that the bigger 
+bigger , smaller , equal . The return value is applied in the $base_date, meaning that the [bigger] 
 for example means that the $base_date is the bigger of the two. 
 
 dateInfo($date : String) : List
@@ -1796,8 +1808,8 @@ This function is very usefull to quick echo dataset fields when the type is unkn
 is not any meaning to test for the type of the field and write more complex code. 
 
 isNull($var : variable):Boolean
-The function returns true if the variable is NULL (only if the variable is in fact returned from a data row OR by a parsing of a json string ) 
-else returns false.
+The function returns true if the variable is NULL (only if the variable is in fact returned from a data row OR by 
+a parsing of a json string ) else returns false.
 
 random($seed:Integer):Integer
 The function returns a pseudo random number based of the seed.
@@ -1845,7 +1857,7 @@ It does not release its object memory, except if it is a [Simple String].
 undef():Variable (as undefined)
 Returns an undefined variable. Example : $unknown_var = undef();
 This is used mainly to return a value from a function that determines that the function failed 
-(like returning NULL to a C function). But it can be used anywere in the script.
+(like returning NULL from a C function). But it can be used anywere in the script.
 
 $some_var.Type(): Variable Type (Integer)
 The function returns the variable type.
@@ -1862,7 +1874,7 @@ The function returns true if the variable with the given name has been declared 
 in the scope and false if it does not.
 
 echoHydra()
-Prints a character art hydra.
+Prints a character art Hydra in console.
 
 
 --Special Commands
@@ -1878,7 +1890,7 @@ Call this to reset the values of the variables that are coresponding to command 
 parameters to the values of the command line.
 
 time_point
-This command print the milliseconds passed from the last time that the time_point was called.
+This command, prints the milliseconds passed from the last time that the time_point was called.
 The first time that the time_point is called, the returned milliseconds are the milliseconds 
 passed from the start of the interpreter. This is used mainly for benchmarking.
 
@@ -1909,21 +1921,25 @@ can be accessed as read only entities from any thread BUT a complex instruction 
 (like a loop or an if(){}) will keep its local variables in this particular block.
 So a problem arise in the variables list. When a function is called in the script, Hydra+ finds 
 its entity and starts the execution of the code using the variables of the variable list, the appropriate for its block.
-In a single threaded enviroment this is very straight forward and with no problems. 
-But in a multithreaded enviroment (or in recursion) the variables list can be accessed from any thread as 
-the variable list is shared between all instances of the function.
-As it is apparent, Hydra+ does not implement a stack to push and pop values for the variables. 
+In normal conditions this is very straight forward and with no problems. 
+But in recursion the variables list can be accessed from any call of the function as the variable list 
+is shared between all instances of the function.
+
+As it is apparent, Hydra+ does not implement a stack to push and pop values for the function variables,
+neither loads the function variables in new memory after a new calling.
+ 
 This problem is resolved by the special instruction [detach]. The [detach] instruction "detaches" 
 a function from the interpreter function list and creates a copy of the function in both code and variables.
 The function is executed normally in series in the current thread BUT the variable list is not persistent and after
 the execution the function instance is been deleted. The drawbacks of this technique are that more memory and cpu cycles 
-are used when a function is going to start execution. For small functions that are rapidly executed and exit, this can have a real impact 
-to the performance.
+are used when a function is going to start execution. 
+For small functions that are rapidly executed and exit, this can have a real impact to the performance.
 
 Recursion
 
 The recursion of a function is not permited in Hydra+ without a detach. If a recursion is going to be executed,
-Hydra+ emmits a fatal error and stops the execution. Example of valid (and never ending) recursion : func myfunc(){detach myfunc();}
+Hydra+ emmits a fatal error and stops the execution. Example of valid (and never ending that will halt eventually the script) 
+recursion : func myfunc(){detach myfunc();}
 
 Thread Safety
 
@@ -1933,11 +1949,11 @@ Every [async] instruction, creates a new thread with a new interpreter and all t
 and the main interpreter. Even the functions that you use in the [async] function , have they own memory in the current interpreter. 
 BUT if you try to run a function of a user defined object that its instance is declared as global variable,
 then this function uses the same memory space in every thread access. 
-So this is not desirable because the same memory can be writed by multiple threads simultaneoysly.
+So this is not desirable because the same memory can be read/writed by multiple threads simultaneoysly.
 To avoid that, create a function in the object to interface with the threads that call the actual working functions as detached. 
 Keep in mind that ALL the functions that the object uses have to be called as detached for the object to be thread safe.
 Ofcourse you can always just run as detached the actual working function of the object without an interface.
-Something that is mandatory if the function accepts parameters.(see below).
+In fact that is mandatory if the function accepts parameters.(see below).
 
 [detach]
 
@@ -2002,7 +2018,7 @@ If you call the $__session.IsSessionValid from a thread then you have to call it
 $res = false ;
 detach $res < $__session.IsSessionValid($uid) ;
 
-The [detach] instruction solves a lot of problems with the simultaneous access of functions, 
+The [detach] instruction solves a lot of problems with the simultaneous access of member functions, 
 BUT the programer has the responsibility to design a system that the shared resources
 are locked and unlocked by the threads, because this is something that the interpreter it self cannot 
 control.
@@ -2065,15 +2081,8 @@ The list must have a root element e.g $list.root = List.ListCreate() ; or $list[
 the root and every other element must conform with the xml struct e.g must have the four elements ,
 name,value,properties,tags
 
-The header is not supported right now (why? I do not remember why i did not support this, i will when i find time), 
+The header is not supported right now (why? I do not remember why I did not support this, I will when I find time), 
 if you want a string with a header make a concatenation in the produced string.
-
-
-
-
-
-
-
 
 
 
