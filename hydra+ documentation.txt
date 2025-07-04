@@ -920,7 +920,7 @@ Searches for the $word string in the string starting from the $from_index.
 Returns the position of the first byte of the first character of the $word that was found.
 If the word does not exists the returned value is -1
 
-$str.FindWordBinary($word,$from_index)[integer]
+.FindWordBinary($word,$from_index)[integer]
 Searches for the $word string in the string starting from the $from_index ,
 returns the position of the first byte of the first character of the $word.
 This may be faster if we know that the string has only simple ansi characters,
@@ -933,7 +933,7 @@ If the $replace_all is true, then all the instances of the $word in the string w
 else only the first occurrence of the $word will be replaced.
 After the function execution the caller will be altered. This function is valid only for [simple strings]. 
 
-$str.ReplaceBinary($word,$with_word,$from_indx,$replace_all):[integer]
+.ReplaceBinary($word,$with_word,$from_indx,$replace_all):[integer]
 Replace the $word string with the $with_word string starting from $from_indx.
 If the $replace_all is true, then all the instances of the $word in the string will be replaced,
 else only the first occurrence of the $word will be replaced. After the function execution the caller will be altered.
@@ -967,7 +967,7 @@ until $chars_to_copy. Use this if the string contains only ansi characters as it
 The function is applicable only to [Simple String].
 
 
-$str.CopyCharBinary($from_indx,$to_char):[simple string]
+.CopyCharBinary($from_indx,$to_char):[simple string]
 The function returns a new string that its contents are the characters of the caller starting from $from_indx 
 until the $to_char. If the $to_char does not exists, then the characters until the end of the caller will be returned.
 Use this if the string contains ansi characters as it may be faster. The function is applicable only to [Simple String].
@@ -1427,7 +1427,7 @@ The function returns true if the file exists , or false if the file does not exi
  
 -- Functions --
 
-Socket.ClientTCP($host : String,$port : Integer,$error : String):ClientTCPSocket
+Socket.ConnectTCP($host : String,$port : Integer,$error : String):ClientTCPSocket
 The function returns a tcp socket connected to the $host in the $port.
 If an error occurs the $error will have the error, else the $error will be empty.  
  
