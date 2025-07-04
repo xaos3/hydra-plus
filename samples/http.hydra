@@ -180,7 +180,7 @@ Host: {$host}
 	{
 	  $cport = 80 ;
 	  if($port != 0) $cport = $port ;
-	  $bconn =Socket.ClientTCP($host,$cport,$error);
+	  $bconn = Socket.ConnectTCP($host,$cport,$error);
 	}
 	
 	if($bconn.IsValid() == false )
