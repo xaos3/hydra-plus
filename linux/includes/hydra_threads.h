@@ -213,7 +213,7 @@ PDX_LIST hdr_async_release_params(PDX_LIST params)
 
 enum exec_state hdr_async_run_function(PHDR_INTERPRETER inter , PHDR_CUSTOM_FUNCTION func ,PHDR_COMPLEX_TOKEN token, PDX_STRING thread_id) 
 {
-	/*insert a delay to protect the weird crash that is produced when the creation of the threads is too fast*/
+	/*insert a delay to protect the weird crash in windows (maybe in linux too ?) that is produced when the creation of the threads is too fast*/
 	dxSleep(10) ;
 	PHDR_CUSTOM_FUNCTION async_func = hdr_async_custom_function_copy(inter,func) ; 
 	/*setup the parameters for the function*/

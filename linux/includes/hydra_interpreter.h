@@ -1498,7 +1498,7 @@ PHDR_VAR hdr_inter_return_data_row_field(PHDR_VAR base_var,PHDR_VAR indx)
 			}
 
 			
-			PDXL_NODE pnode = dx_list_go_to_pos(row,findx) ;
+		   PDXL_NODE pnode = dx_list_go_to_pos(row,findx) ;
 		   /*now we have to basic type of the field to convert it to a native PHDR_VAR */
 		   PHDR_VAR  var   = hdr_var_create(NULL,"",hvf_temporary_ref,NULL) ;
 		   PDX_FIELD field = pnode->object ;
@@ -1537,12 +1537,14 @@ PHDR_VAR hdr_inter_return_data_row_field(PHDR_VAR base_var,PHDR_VAR indx)
 				 /*copy the bytes*/
 				 memcpy(bytes->bytes,blob->data,bytes->length) ;
 				 hdr_var_set_obj(var,bytes);
+				 break ;
 			   }
 			   case DX_FIELD_VALUE_DATE:
 			   {
 				 var->type     = hvt_simple_string ;
 				 PDX_STRING ns = dx_string_createU(NULL,field->key->stringa) ;  
 				 hdr_var_set_obj(var,ns) ;
+				 break;
 			   }
 		   }
 
