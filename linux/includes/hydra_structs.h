@@ -1401,6 +1401,9 @@ typedef struct hdr_custom_function
    are passed as a reference. Even the simple and unicode strings or the numeric types,
    pass as references. In actuality the interpreter  make the block variable to point to
    the parameter. After the function ends the block variables that points to parameters would be set to NULL
+   2025-08-02 To mitigate the problem with the implicit recursion e.g. myfunc(){runfunc()} ; runfunc(){myfunc()} ;
+   we will set a flag in the function that will signal that the function is currently loaded in the interpreter ,
+   so no other instance can be executed , except with the [detach]
    
  */
 	PDX_STRINGLIST		parameters  ;
@@ -1414,7 +1417,7 @@ typedef struct hdr_custom_function
 										If the function creates a new thread to execute itself (async)
 										then the returned value is lost
 									  */
-
+	bool                is_running  ;
 	PDX_STRING			name		; /*the name of the function*/
 	PHDR_OBJECT_CLASS   object      ;/*the object that the function belongs if the function belongs to an object*/
 
@@ -1429,6 +1432,7 @@ PHDR_CUSTOM_FUNCTION hdr_custom_function_create(PHDR_INTERPRETER interpreter,cha
 	func->interpreter = interpreter						;
 	func->name        = dx_string_createU(NULL,name)	;
 	func->object	  = NULL							;
+	func->is_running  = false							;    
 	return func;
 }
 

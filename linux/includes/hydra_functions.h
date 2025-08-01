@@ -103,7 +103,10 @@ enum hdr_user_func_result hdr_run_user_function(PHDR_INTERPRETER inter,PHDR_COMP
 	/*
 	  now we have to search for the function in the function list. if we do not find it we return hdr_user_func_not_found,
 	  if the obj is not NULL then the search is done in the object function list first and then in the scripts function list.
-	  If the as_go (special calling for accessing the local variables) is true then the user function parend code block will be set to the interpreter current code 
+	  If the as_go (special calling for accessing the local variables) is true 
+	  then the user function parent code block will be set to the interpreter current code.
+	  2025-08-02 The function will set the ->is_running flag of the function to true to implement the forbit recursive without
+	  detach scheme.
 	*/
 
 	PHDR_CUSTOM_FUNCTIONS_LIST lst = inter->funcs ;
@@ -232,20 +235,34 @@ enum hdr_user_func_result hdr_run_user_function(PHDR_INTERPRETER inter,PHDR_COMP
 		goto error ;
 	}
 
-	/*We do not permit a function to call itself without the special command  [detach] */
+	/*
+	  We do not permit a function to call itself without the special command  [detach] 
+	  2025-08-02 We will check if the function is running in the current interpreter 
+	  via another function for example like myfunc(){thisfunc()} where the thisfunc is declared 
+	  as thisfunc(){myfunc()} ;
+	*/
 	if(inter->curr_func != NULL)
 	{
-	  if ((dx_string_native_compare(inter->curr_func->name,func->name) == dx_equal)&&(inter->curr_func->object == func->object))
+      /*
+	   Check if the is_running flag of the function is true. If its true then in the current interpreter
+	   the function is loaded and is running. Of course maybe is in a suspended state if another function
+	   is running currently. Either way we forbidd implicit and explicit recursion with out the detach instruction.
+	  */
+	  /*clean up this after the testing proves that the code works good*/
+	  /*if ((dx_string_native_compare(inter->curr_func->name,func->name) == dx_equal)&&(inter->curr_func->object == func->object))*/
+      if(func->is_running == true) /*this is simpler , faster and more powerfull*/
 	  {
 	    params = hdr_user_func_h_release_params(params) ;
-		printf("Fatal Error -> The function [%s] cannot call itself without the detach command. Example : detach Myfunction();\n",token->ID->stringa);
+		printf("Fatal Error -> The function [%s] cannot be called recursively (explicit or implicit) without the detach command. Example : detach Myfunction();\n",token->ID->stringa);
 
 		goto error ;
 	  }
+
 	}
 
 	inter->in_func   = true   ;
 	inter->curr_func = func   ;
+	inter->curr_func->is_running = true ;
 	hdr_inter_set_block(inter, func->code);
 
 	/*execute the function*/
@@ -254,7 +271,6 @@ enum hdr_user_func_result hdr_run_user_function(PHDR_INTERPRETER inter,PHDR_COMP
 	{
 		params = hdr_user_func_h_release_params(params) ;
 		printf("Fatal Error -> An error occured in the execution of the user custom function [%s]. See the above messages.\n",token->ID->stringa);
-
 		goto error ;
 	}
 	else 
@@ -286,7 +302,7 @@ enum hdr_user_func_result hdr_run_user_function(PHDR_INTERPRETER inter,PHDR_COMP
 	{
 	  PDX_STRING  pname    = node->object->key ;
 	  PDXL_OBJECT ppointer = dx_HashReturnItem(func->code->variables->list,pname,true); 
-	  ppointer->obj = NULL ; /*set this to NULL because it was a absolute reference to the parameter variable*/
+	  ppointer->obj = NULL ; /*set this to NULL because it was an absolute reference to the parameter variable*/
 	  indx++ ;
 	  node = node->right ;
 	}
@@ -299,6 +315,8 @@ enum hdr_user_func_result hdr_run_user_function(PHDR_INTERPRETER inter,PHDR_COMP
 	 func->code->parent = inter->code ;
 	}
 
+	/*2025-08-02 set the current function ->is_running flag to false */
+	inter->curr_func->is_running = false ;
 	saved_state = hdr_inter_restore(inter, saved_state);
 
 	return hdr_user_func_success ;
