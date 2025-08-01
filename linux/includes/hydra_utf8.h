@@ -532,7 +532,7 @@ char * _ret_bytes_from_escu(char *bytes)
   upoint[4] = 0       ; /*terminate it*/
  
   uint32_t uval  = (uint32_t)dxHexToDec(upoint);
-  char ret[5] ;
+  char *ret = malloc(5) ;
   dxConvertUint32ToUTF8(ret,uval) ;
   return ret     ;
 }
@@ -586,6 +586,7 @@ PDX_STRING ConvertEscapedUTF8ToString(PDX_STRING str)
                          }
                         }
                         strindx = strindx + 6 ; /*next character*/
+                        free(bts);
                       }
                         else
                           {

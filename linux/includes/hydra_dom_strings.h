@@ -1932,7 +1932,10 @@ bool hdr_domStringCopyChar(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHD
 	char th_char[5] ;
 	if(param2->type == hvt_codepoint) dxConvertUint32ToUTF8(th_char,param2->integer) ;
 	else
+	{
+		/*the strict typing forbits two different type of variables to interact so this is safe! */
 		dx_strcpy(th_char,((PDX_STRING)param2->obj)->stringa) ;
+	}
 	
 	switch(for_var->type)
 	{
