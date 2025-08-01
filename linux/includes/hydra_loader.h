@@ -218,7 +218,11 @@ char *hdr_loader_load_text_from_disk(char* filename)
     PDX_LIST list = dx_list_create_list();
 
     FILE* f = fopen(filename, "rb") ;
-    if (f == NULL) return NULL      ;
+    if (f == NULL) 
+    {
+        dx_list_delete_list(list);
+        return NULL      ;
+    }
     char *buff = (char*)malloc(LOADER_TEXT_BUFFER_SIZE+1) ;
     /*load the text in a list and concatenate later to return  all the script text*/
     DXLONG64 total_size = 0;
@@ -254,7 +258,11 @@ char *hdr_loader_load_text_from_disk(char* filename)
     //buffer is ready, construct it in a continue block in memory
     free(buff);
     
-    if (total_size == 0) return NULL ;
+    if (total_size == 0) 
+    {
+        dx_list_delete_list(list);
+        return NULL ;
+    }
     
     buff = (char*)malloc(total_size+1);
 

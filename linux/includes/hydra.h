@@ -31,7 +31,7 @@
 
 
 
-#define ERROR_HYDRA_IS_NULL 301 ;
+#define ERROR_HYDRA_IS_NULL 301
 
 
 /*
@@ -127,7 +127,7 @@ PHYDRA HydraCreate(char *exepath,PHDR_BLOCK block)
 PHYDRA HydraFree(PHYDRA hydra)
 {
     if (hydra == NULL) return NULL;
-    /*mem managemnt*/
+    /*memory management*/
     hydra->finalizer        = hdr_mem_pointers_create()                         ;
     _POINTERS = hydra->finalizer ;
     /**************/
