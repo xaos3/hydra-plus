@@ -4,7 +4,7 @@ time i will upload the windows version too. If you want to test the windows vers
 Hydra+ Interpreter at the http://deus-ex.gr/downloads/hydra+Win.zip
 
 Below i will explain the basic operation of the Hydra+ , why i create it and how you can compile the source code for Linux 
-that this repository hosts (NOTE : The source code has precompiled some third party libraries for convinience , that limits the compile to x86-64bit systems that are Ubuntu based.
+that this repository hosts (NOTE : The source code has precompiled some third party libraries for convenience , that limits the compile to x86-64bit systems that are Ubuntu based.
 See the relevant informations in the compile section later in the text).
 
 ## What is Hydra+ ? 
