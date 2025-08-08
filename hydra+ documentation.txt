@@ -276,11 +276,9 @@ BUT the second time that the function will run an error message will be emitted 
 	  in a loop or function , this means that you have not Free() or Release() the variable.
 	  Please do Release() or Free() the variable after use. -----
 
-This means that you forgot to Free the $clConn. If you do not Free the variable properly before the function exists,
+This means that you forgot to Free the $clConn. If you do not Free the variable properly before the function exits,
 and then in the next execution the functiom try to set the variable to [undefine], then the interpreter will emit this error.
 I decided to left this error in place , as it can help to eliminate some memory leaks, when a .Free() is forgotten.
-
-
 
 
 --- Run , execute , input and output ---
@@ -671,8 +669,9 @@ will be terminated. For example : terminate "main" ;
 in the threads special info.(See the following in the text).   
 
 threadInfo("thread id") : List[message,running,error,exist] -> Returns a list with the specific elements.
-The [message] is the message that the thread has set if any. The [running] is true if the thread is running and false if not.
-The [error] is true if the thread was terminated by an interpreter error.
+The [message] is the message that the thread has set if any. 
+The [running] this is always true. The threads are automatically dealocated when terminated.
+The [error] this is reserved for future use.
 The [exists] is the first element that it must be checked. If true then the [thread id] does exists
 and the values in the members are valid. If its false then a thread with this string was not found.
 
@@ -1952,7 +1951,7 @@ then this function uses the same memory space in every thread access.
 So this is not desirable because the same memory can be read/writed by multiple threads simultaneoysly.
 To avoid that, create a function in the object to interface with the threads that call the actual working functions as detached. 
 Keep in mind that ALL the functions that the object uses have to be called as detached for the object to be thread safe.
-Ofcourse you can always just run as detached the actual working function of the object without an interface.
+Of course you can always just run as detached the actual working function of the object without an interface.
 In fact that is mandatory if the function accepts parameters.(see below).
 
 [detach]
