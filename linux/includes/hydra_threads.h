@@ -43,7 +43,7 @@ void * hdr_threads_execute_inter(void *param)
 
 /*
   the async command tries to copy the function from the interpreter list of functions 
-  BUT tthe function block is prepared for the pass of the parameters (NULL variable member in the node), This make the block 
+  BUT the function block is prepared for the pass of the parameters (NULL variable member in the node), This make the block 
   unsuitable for regular copying and we will create a specific set of this function to use here.
 */
 
@@ -236,6 +236,7 @@ enum exec_state hdr_async_run_function(PHDR_INTERPRETER inter , PHDR_CUSTOM_FUNC
 	}
 
 	async_func->interpreter	    = async_inter ;
+	async_inter->parent         = inter       ; /*set the parent*/
 	async_inter->code		    = async_func->code ;
 	async_inter->current_block  = async_inter->code ; 
 

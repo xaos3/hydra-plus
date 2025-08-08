@@ -1968,7 +1968,7 @@ PHDR_THREAD_LIST hdr_thread_list_free(PHDR_THREAD_LIST list)
 
 PHDR_THREAD *hdr_thread_list_add_thread(PHDR_THREAD_LIST list , PHDR_THREAD thread)
 {
-  if(list->count == HYDRA_MAXIMUM_THREADS) return false ;
+ /* if(list->count == HYDRA_MAXIMUM_THREADS) return NULL ; disable this from 2025-08-08 , see at the bottom why*/
   /*find the next free slot*/
   PHDR_THREAD * free_pos = NULL ; 
   int i =0 ;
@@ -1983,7 +1983,12 @@ PHDR_THREAD *hdr_thread_list_add_thread(PHDR_THREAD_LIST list , PHDR_THREAD thre
 
   if(free_pos == NULL) return NULL ;
   *free_pos = thread ; 
-  (list->count)++ ;
+ /*(list->count)++ ; 
+  This is not use from 2025-08-08 because we check the actual array, is slower but safer
+  as the dec of the lists count its compicated a sthe list is a resource that all the threads share.
+  We can create an enumeration function that will run from the main thread to update this but 
+  it will not be must optimal and it will be more complex than left things in their natural state.
+ */ 
   return free_pos ;
 }
 

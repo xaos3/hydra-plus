@@ -225,7 +225,7 @@ typedef struct hdr_interpreter
 {
 	DXLONG64 ID								;/*an id for debuging purposes in async functions*/ 
 	PHDR_LOADER		 loader					;/*the loader*/
-	
+	PHDR_INTERPRETER parent                 ;/*in the main interpreter this is NULL, in an async function interpreter, is the main thread interpreter*/
 	PHDR_VAR_LIST    params					;/*this will be set after the parameters are load. This is a reference to a member in the PHYDRA object*/ 
 	PHDR_THREAD_LIST threads				;/*this will be set by the PHYDRA object and is a pointer to the PHYDRA->threads*/
 
@@ -356,6 +356,7 @@ PHDR_INTERPRETER hdr_interpreter_create(PHDR_LOADER loader,bool loader_can_be_nu
 
 	interpreter->ID            = INTER_ID_GEN++ ;
 	interpreter->loader		   = loader; 
+	interpreter->parent        = NULL  ;
 	interpreter->params		   = NULL  ;
 	interpreter->threads	   = NULL  ;
 	interpreter->loops		   = 0     ;

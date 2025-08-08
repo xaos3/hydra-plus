@@ -61,7 +61,7 @@ void hdr_user_func_code_init_var(PHDR_VAR_LIST list)
 
 PDX_LIST hdr_user_func_h_release_params(PDX_LIST params)
 {
-
+    if(params == NULL) return NULL ;
 	PDXL_NODE node = params->start ;
 	while(node!=NULL)
 	{
@@ -1459,6 +1459,7 @@ bool hdrGetThreadId(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHDR_VAR *
     hdr_sys_func_free_params(params) ;
     return true ;
 }
+
 
 /************************************ DOMAINS ********************************************/
 

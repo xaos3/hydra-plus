@@ -62,7 +62,7 @@ enum exec_state hdr_cmd_time_point(PHDR_INTERPRETER inter)
 enum exec_state hdr_cmd_version(PHDR_INTERPRETER inter)
 {
 	/*print the version and info of hydra*/
-	printf("Hydra+ by Nikos Mourgis. Deus-Ex.gr. Version 1.0.0.1 Beta\n");
+	printf("Hydra+ by Nikos Mourgis. Deus-Ex.gr. Version 1.0.0.4 Beta\n");
 	return exec_state_ok;
 }
 
@@ -1021,7 +1021,7 @@ enum exec_state hdr_inter_handle_wait(PHDR_INTERPRETER inter, PHDR_EXPRESSION ex
 	
 	if(ftoken == NULL)
 	{
-	  printf("The [termonateAll] command failed. Check the syntax , as it may be malformed. Example : wait $seconds ;");
+	  printf("The [terminateAll] command failed. Check the syntax , as it may be malformed. Example : wait $seconds ;");
 	  return exec_state_error ;
 	}
 
