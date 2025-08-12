@@ -1752,10 +1752,12 @@ bool hdr_inter_handle_function(PHDR_INTERPRETER inter ,PHDR_COMPLEX_TOKEN token,
 			if (hdr_inter_fast_str(token->ID, "getFilesDirs", 12) == true) return hdr_get_files_dirs(inter,token,result)   ;
 			if (hdr_inter_fast_str(token->ID, "emptyFile", 9) == true)     return hdr_domEmptyFile(inter, token);
 			if (hdr_inter_fast_str(token->ID, "fileExists", 10) == true) return hdr_domFileExists(inter, token,result) ;
-			if (hdr_inter_fast_str(token->ID, "dirExists", 9) == true)   return hdr_domDirExists(inter, token,result)    ;
-			if (hdr_inter_fast_str(token->ID, "deleteFile", 10) == true) return hdr_domFileRemove(inter, token,result)    ;
-			if (hdr_inter_fast_str(token->ID, "emptyDir", 8) == true)    return hdr_domEmptyDir(inter, token,result)      ;
-			if (hdr_inter_fast_str(token->ID, "deleteDir", 9) == true)   return hdr_domDeleteDir(inter, token,result)    ;
+			if (hdr_inter_fast_str(token->ID, "dirExists", 9) == true)   return hdr_domDirExists(inter, token,result)  ;
+			if (hdr_inter_fast_str(token->ID, "deleteFile", 10) == true) return hdr_domFileRemove(inter, token,result) ;
+			if (hdr_inter_fast_str(token->ID, "emptyDir", 8) == true)    return hdr_domEmptyDir(inter, token,result)   ;
+			if (hdr_inter_fast_str(token->ID, "deleteDir", 9) == true)   return hdr_domDeleteDir(inter, token,result)  ;
+			if (hdr_inter_fast_str(token->ID, "renameFile", 10) == true) return hdr_domRenameFile(inter, token,result) ;
+			if (hdr_inter_fast_str(token->ID, "copyFile", 8) == true)    return hdr_domCopyFile(inter, token,result)   ;
 
 			/*
 			 2024-12-14 I added support for image manipulation , i will keep it simple , im using the stb_image.h and 

@@ -692,6 +692,15 @@ bool dxDeleteDir(PDX_STRING dir,bool deleteRoot);
  Return true if all its ok or false otherwise
 #*/
 
+bool dxRenameFile(PDX_STRING fname , PDX_STRING new_name);
+/*#
+ The function renames a file or directory and returns true in success and false in error
+#*/
+
+bool dxCopyFile(PDX_STRING fname,PDX_STRING new_file);
+/*#
+ The function copy the file to the new path. Returns true in success and false in error
+#*/
 
 bool dxFilesToZip(PDX_STRING fileName, PDX_STRINGLIST fileList);
 /*#
@@ -4546,6 +4555,48 @@ bool dxDeleteDir(PDX_STRING dir,bool deleteRoot)
     return true ;
 }
 
+bool dxRenameFile(PDX_STRING fname , PDX_STRING new_name)
+{
+    int ret = rename (fname->stringa, new_name->stringa);
+    if(ret == 0) return true ;
+    
+    return false ;
+}
+
+bool dxCopyFile(PDX_STRING fname,PDX_STRING new_file)
+{
+   
+    /*open the original file*/
+    if(dx_string_native_compare(fname,new_file)==dx_equal) return false ;
+
+    FILE *or = fopen(fname->stringa,"rb") ;
+    if(or == NULL) return false ;
+    FILE *nf = fopen(new_file->stringa,"wb") ;
+    if(nf == NULL)
+    {
+        fclose(or);
+        return false ;
+    }
+
+    /*do the copy*/
+
+    int bsize  = 100*1024 ;
+    char * buf = (char*)malloc(bsize);
+    int bcnt   = 0 ;
+
+    bcnt = fread(buf,1,bsize,or) ;
+    while(bcnt > 0 )
+    {
+      fwrite(buf,bcnt,1,nf) ;
+      bcnt = fread(buf,1,bsize,or) ;
+    }
+                   
+    fclose(or);
+    fclose(nf);
+    free(buf);
+    return true; 
+
+}
 
 bool dxFilesToZip(PDX_STRING fileName, PDX_STRINGLIST list) 
 {

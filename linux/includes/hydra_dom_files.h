@@ -539,8 +539,88 @@ bool hdr_domEmptyDir(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_VAR *
     return true ;
 }
 
+bool hdr_domRenameFile(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_VAR *result)
+{
+   PHDR_SYS_FUNC_PARAMS params = hdr_sys_func_init_params(inter,token->parameters,2) ;
+   if(params == NULL)
+   {
+    printf("The system function renameFile($fileName:String,$newName:string):Boolean failed.\n");
+    return true ;
+   }
+   
+   bool type_error = false ;
+
+   PDX_STRING fname = hdr_inter_ret_string(params->params[0],&type_error) ; 
+   if(type_error == true)
+   {
+	 printf("The first parameter must be a String variable.\n");
+     goto fail ;
+   }
+
+   PDX_STRING new_name = hdr_inter_ret_string(params->params[1],&type_error) ; 
+   if(type_error == true)
+   {
+	 printf("The second parameter must be a String variable.\n");
+     goto fail ;
+   }
+
+    bool ret = dxRenameFile(fname,new_name) ;
+
+    *result           = hdr_var_create(NULL, "", hvf_temporary_ref, NULL) ;
+   (*result)->type    = hvt_bool ; 
+   (*result)->integer = hdr_inter_bool_to_int(ret)      ;
+
+    success:
+    hdr_sys_func_free_params(params) ;
+    return false ;
+
+    fail : 
+    printf("The system function renameFile($fileName:String,$newName:string):Boolean failed.\n");
+    hdr_sys_func_free_params(params) ;
+    return true ;
+}
 
 
+bool hdr_domCopyFile(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_VAR *result)
+{
+   PHDR_SYS_FUNC_PARAMS params = hdr_sys_func_init_params(inter,token->parameters,2) ;
+   if(params == NULL)
+   {
+    printf("The system function copyFile($fileName:String,$newName:string):Boolean failed.\n");
+    return true ;
+   }
+   
+   bool type_error = false ;
+
+   PDX_STRING fname = hdr_inter_ret_string(params->params[0],&type_error) ; 
+   if(type_error == true)
+   {
+	 printf("The first parameter must be a String variable.\n");
+     goto fail ;
+   }
+
+   PDX_STRING new_name = hdr_inter_ret_string(params->params[1],&type_error) ; 
+   if(type_error == true)
+   {
+	 printf("The second parameter must be a String variable.\n");
+     goto fail ;
+   }
+
+    bool ret = dxCopyFile(fname,new_name) ;
+
+    *result           = hdr_var_create(NULL, "", hvf_temporary_ref, NULL) ;
+   (*result)->type    = hvt_bool ; 
+   (*result)->integer = hdr_inter_bool_to_int(ret)      ;
+
+    success:
+    hdr_sys_func_free_params(params) ;
+    return false ;
+
+    fail : 
+    printf("The system function copyFile($fileName:String,$newName:string):Boolean failed.\n");
+    hdr_sys_func_free_params(params) ;
+    return true ;
+}
 
 
 
