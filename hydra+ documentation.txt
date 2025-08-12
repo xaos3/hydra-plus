@@ -1742,6 +1742,14 @@ The function returns true if the directory was deleted successfuly or false othe
 emptyDir($dirname:String):Boolean
 The function returns true if the directorys contents was deleted or false otherwise.
 
+renameFile($fileName:String,$newName:String):Boolean ;
+The function renames the file or directory to the new name. If the function
+succeed then returns true , in failure return false.
+
+copyFile($fileName,$newFile):Boolean;
+The function copy the file the new file. If the function
+succeed then returns true , in failure return false.
+
 dateToPOSIX($date : String as [YYYY-MM-DD 00:00:00]) : POSIX time
 The function returns an Integer that represents a POSIX time
 
