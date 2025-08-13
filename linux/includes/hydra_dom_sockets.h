@@ -745,6 +745,10 @@ bool hdr_domTCPClientSSLCreate(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,
       goto success ;
     }
 
+    /*to support strict servers*/
+    wolfSSL_UseSNI(ssl->ssl, 0, host->stringa,host->bcount);
+    wolfSSL_check_domain_name(ssl->ssl, host->stringa);
+
    if((ssl->sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
 	{
         printf("Error : Socket does not created. Error code : %d",GetLastError());
@@ -798,7 +802,7 @@ bool hdr_domTCPClientSSLCreate(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,
         hdr_var_set_obj(*result,NULL) ;
         goto success  ;
     }
- 
+
     int ret = wolfSSL_connect(ssl->ssl) ;
     if ( ret != SSL_SUCCESS  )
     {
