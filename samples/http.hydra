@@ -1018,7 +1018,7 @@ func _set_state($buf_info,$state)?:Boolean true in success false in error
 		 if($buffer[0]!= $_lf ) return false ; # error 
 		 
 		 $state = -1 ; # header end
-		 if(blen == 1)
+		 if($blen == 1)
 		  $binfo.afterHeader = -2 ; 
 		   else
 			$binfo.afterHeader = 1 ; # the byte after the headers 
