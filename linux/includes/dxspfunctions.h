@@ -1848,7 +1848,15 @@ PDX_STRING _get_line_to_char(char **buff_indx , char term )
      If the term does not exists then the function returns the string until the end.
     */
     char * str_indx   = *buff_indx   ;
-    if((*str_indx == 0)||(*str_indx == term)) return NULL ;
+    if((*str_indx == 0)||(*str_indx == term)) 
+    {
+        /*if the separator is not the last character then we will increase the str_indx before return NULL */
+        if((*str_indx != 0)&&(*(str_indx+1) != 0 ))
+        {
+            (*buff_indx)++ ;
+        }
+        return NULL ;
+    }
     /*find the term*/
     DXLONG64 term_pos = 0            ;
     while ((*str_indx != term)&&(*str_indx != 0))
@@ -1867,7 +1875,7 @@ PDX_STRING _get_line_to_char(char **buff_indx , char term )
         str[term_pos] = 0               ; /*terminate the string*/
         memcpy(str,*buff_indx,term_pos) ; /*use the indx as count so the terminator will not be copied*/
         nstr = dx_string_create_bU(str) ;
-        str_indx++ ; /*pass the termnator!*/
+        str_indx++ ; /*pass the separator!*/
     }
 
     if(*str_indx == 0)
