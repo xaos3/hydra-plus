@@ -2924,6 +2924,8 @@ int hdr_loader_create_code_from_string(PHDR_LOADER loader, char* text)
                                     {
                                         char sep = 0;
                                         char* var = dxGetNextWord(&sect, ",", "`\"", true, true, &sep);
+                                        /*trim the spaces from the var name*/
+                                        dxUtf8Trim(&var," ");
                                         if (var[0] == 0)
                                         {
                                             free(var);

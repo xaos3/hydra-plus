@@ -2613,7 +2613,8 @@ enum exec_state hdr_inter_handle_assign(PHDR_INTERPRETER inter)
 			PHDR_VAR var    = hdr_inter_retrieve_var_block(inter, instr->left_side->ID);
 			if (var == NULL)
 			{
-				hdr_inter_print_error(inter, "The variable '%s' does not exists in the scope.\n");
+				hdr_inter_print_error(inter, "The variable does not exists in the scope.\n");
+				printf("variable name : [%s]\n",instr->left_side->ID->stringa);
 				return exec_state_error;
 			}
 
