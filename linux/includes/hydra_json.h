@@ -935,7 +935,7 @@ PDX_LIST hdrParseJsonString(PDX_STRING json,PDX_STRING error)
 	 else
 	 {
 	  error = dx_string_createU(error,"The string is not a valid JSON string. A valid JSON string is encapsulated by {} or []") ;
-	  hdr_var_list_free(root);
+	  dx_list_delete_list(root);
 	  return NULL ;
 	 }
 

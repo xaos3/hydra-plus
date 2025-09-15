@@ -2118,7 +2118,7 @@ DXUTF8CHAR dx_get_utf8_char_ex(char **char_indx,char **prev_char)
    /*something  very strange is happening. lets check the byte*/
    if(*char_indx == 0) return 0 ;
    (*char_indx)++ ; /*encoding error, next byte*/
-   return (DXUTF8CHAR)*char_indx ; 
+   return (DXUTF8CHAR) *(*char_indx) ; 
 }
 
 DXUTF8CHAR dx_get_utf8_char_ex2(char **char_indx,char **prev_char,int *char_len)
@@ -2251,7 +2251,7 @@ DXUTF8CHAR dx_get_utf8_char_ex2(char **char_indx,char **prev_char,int *char_len)
    }
    (*char_indx)++ ; /*encoding error, next byte*/
    *char_len = 1 ;
-   return (DXUTF8CHAR)*char_indx ; 
+   return (DXUTF8CHAR)*(*char_indx) ; 
 }
 
 

@@ -2535,8 +2535,7 @@ bool hdr_domStringInt(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHDR_VAR
 			intval = dx_StringToInt((PDX_STRING)for_var->obj,&error) ;
 			if(error == true) 
 			{
-				strerror = dx_string_createU(strerror,"The conversion of the string into integer failed.");
-				return false ;
+				strerror = dx_string_createU(strerror,"The conversion of the string into integer failed. Keep in mind that a string that describes a [Real] type cannot be converted.");
 			}
 			*result = hdr_var_create(NULL, "", hvf_temporary, NULL);
 			(*result)->type = hvt_integer;

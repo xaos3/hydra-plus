@@ -727,7 +727,7 @@ bool hdr_domBytesCompress(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_
     PHDR_BYTES src     = (PHDR_BYTES)for_var->obj ;
 	DXLONG64   compLen = 0      ;
 	PHDR_BYTES bt      = NULL   ; 
-    char * tbt = dxCompress(src->bytes,src->length,&compLen) ;
+    char * tbt = dxCompress(src->bytes,src->length,(unsigned long*)&compLen) ;
 	if(tbt == NULL)
 	{
 	  bt = hdr_bytes_create(0) ;

@@ -148,7 +148,7 @@ bool hdr_imgImageInfo(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_VAR 
     DXLONG64 ch = 0 ;
     width  = 0 ;
     height = 0 ;
-    if(stbi_info(fname->stringa, &width, &height, &ch) != 0 ) ret = true ;
+    if(stbi_info(fname->stringa, (int*)&width, (int*)&height, (int*)&ch) != 0 ) ret = true ;
 
     /*set the parameters with the right values*/
     if(params->params[1]->type == hvt_integer) params->params[1]->integer = width ;
@@ -255,9 +255,9 @@ bool hdr_imgResizeImage(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_VA
         }
 
         /*fill the new buffer*/
-        int ret_s = stbir_resize_uint8_linear(img,width,height, 0, img_buffer, nwidth, nheight, 0,channels);
+        unsigned char *ret_s = stbir_resize_uint8_linear(img,width,height, 0, img_buffer, nwidth, nheight, 0,channels);
 
-        if(ret_s != 0)
+        if(ret_s != NULL)
         {
             if(hdr_inter_fast_str(itype, "png", 3) == true)
             {
