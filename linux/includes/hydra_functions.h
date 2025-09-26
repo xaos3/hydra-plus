@@ -1764,7 +1764,7 @@ bool hdr_inter_handle_function(PHDR_INTERPRETER inter ,PHDR_COMPLEX_TOKEN token,
 			 the other stb_ headers (i love them <3) and i will support image convertion and resize. I do not have 
 			 the itent to make more complicated functions or support more exotic features as Hydra+ has another purpose.
 			 BUT as i want to use Hydra+ to replace some middlewares that do handle images (from/to eshops) i prefer
-			 to habe native support for this simple image operations. For more complex actions the right way is to 
+			 to have native support for this simple image operations. For more complex actions the right way is to 
 			 call from a Hydra+ script , another executable that will handle the images.
 			*/
 

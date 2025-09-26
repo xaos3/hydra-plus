@@ -204,6 +204,11 @@ PDX_STRING CopyIndx(PDX_STRING str , DXLONG64 indx,DXLONG64 len);
  if len < 0 then the function will copy until the end of the string
 #*/
 
+bool dxIsCharHex(char ch);
+/*
+ if the character ch is a hexadecimal valid character , then the function return true , else returns false
+*/
+
 DXLONG64 dxHexToDec(char *hex);
 /*
  Convert a hexadecimal number to decimal
@@ -1977,6 +1982,13 @@ PDX_STRING CopyIndx(PDX_STRING str , DXLONG64 indx,DXLONG64 len)
  
 }
 
+
+bool dxIsCharHex(char ch)
+{
+   return ( (ch >= '0' && ch <= '9') ||
+             (ch >= 'A' && ch <= 'F') ||
+             (ch >= 'a' && ch <= 'f') );
+}
 
 DXLONG64 dxHexToDec(char *hex)
 {

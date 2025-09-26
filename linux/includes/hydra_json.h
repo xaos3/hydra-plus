@@ -39,7 +39,33 @@ bool hdr_json_handle_array(PDX_LIST arr, char **str,PDX_STRING error)        ;
 void hdr_json_ret_arr_str(PDX_STRINGLIST json , PDX_LIST arr,bool add_coma)				 ;
 void hdr_json_ret_arr_obj(PDX_STRINGLIST json , PDX_LIST arr,bool add_coma)				 ;
 
+bool hdr_json_check_for_esc_unicode(char *str_indx)
+{
+	/*
+	 check if the current character is the u or U character and if the next 4 characters are arithmetic
+	 if it is then true is returned. If its is not or the string ends then false is returned
+	*/ 
 
+	if(*str_indx == 0) return false ;
+	if((*str_indx == 'u')||(*str_indx == 'U'))
+	{
+	   /*we will unroll the loop*/
+       str_indx++ ; 
+	   if((*str_indx == 0)||(dxIsCharHex(*str_indx)==false)) return false ;
+	   str_indx++ ; 
+	   if((*str_indx == 0)||(dxIsCharHex(*str_indx)==false)) return false ;
+	   str_indx++ ; 
+	   if((*str_indx == 0)||(dxIsCharHex(*str_indx)==false)) return false ;
+	   str_indx++ ; 
+	   if((*str_indx == 0)||(dxIsCharHex(*str_indx)==false)) return false ;
+
+	   return true ;
+
+	}
+	else 
+		return false ;
+
+}
 
 char *hdr_json_copy_string(char **json,PDX_STRING error)
 {
@@ -61,7 +87,7 @@ char *hdr_json_copy_string(char **json,PDX_STRING error)
   {
      if(*temp_json == '"') break ;
   
-	 if((*temp_json == '\\')&&((*(temp_json+1))!='u')) /*the \u signals a unicode char (4 hexadecimal digits follows)*/
+	 if((*temp_json == '\\')&&(hdr_json_check_for_esc_unicode(temp_json+1) == false)) /*the \u signals a unicode char (4 hexadecimal digits follows)*/
 	 {
 	   /*the next character must create one of the above escape sequences else we will throw an error*/
 	  char next_char = *(temp_json+1) ; 
@@ -101,7 +127,7 @@ char *hdr_json_copy_string(char **json,PDX_STRING error)
   {
      if(*temp_json == '"') break ;
   
-	 if((*temp_json == '\\')&&((*(temp_json+1))!='u')) /*the \u signals a utf8 character (4 hexadecimal digits follows) */
+	 if((*temp_json == '\\')&&(hdr_json_check_for_esc_unicode(temp_json+1) == false)) /*the \u signals a utf8 character (4 hexadecimal digits follows) */
 	 {
 	   /*the next character must create one of the above escape sequences else we will throw an error*/
 	  char next_char = *(temp_json+1)   ;  
@@ -1008,8 +1034,8 @@ PDX_STRING hdr_json_h_replace_cntrl(PDX_STRING val)
 		*accum_indx = '#' ;/*to clear the 0*/
 		accum_indx = accum ;
 	}
-	else
-	if((*str_indx == '\\')&&((*(str_indx+1)) !='u'))
+	else  
+	if((*str_indx == '\\')&&((hdr_json_check_for_esc_unicode(str_indx+1))==false))
 	{
 		*accum_indx = 0 ;
 		dx_stringlist_add_raw_string(strl,accum) ;

@@ -558,9 +558,8 @@ PDX_STRING ConvertEscapedUTF8ToString(PDX_STRING str)
 
    if(*strindx == '\\')
    {
-     if((*(strindx+1) == 'u')||(*(strindx+1) == 'U'))
+     if(hdr_json_check_for_esc_unicode(strindx+1)==true)
      {
-      /*we will check that the codepoint does not terminates abruptly with a zero but no more error detection will be done*/
         if(*(strindx+2) != 0)
               if(*(strindx+3) != 0)
                   if(*(strindx+4) != 0)
