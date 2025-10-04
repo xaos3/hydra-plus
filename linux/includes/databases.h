@@ -596,8 +596,17 @@ bool dx_h_sqlite_add_row_to_dataset(sqlite3_stmt *pStmt ,PDX_SQLITE sqlite, PDX_
                                    }
                                   break ;
            case SQLITE_TEXT     :  {
+                                       /*
+                                         a very strange behavior from the SQLite. If a TEXT COLUMN is NULL then
+                                         SOME TIMES the SQLITE_NULL flag is not set , in contrast the sqlite3_column_text
+                                         returns NULL. So we will mitigate this.
+                                       */
                                        field->flags =  DX_FIELD_VALUE_TEXT ;
-                                       field->key   = dx_string_createU(NULL,(char*)sqlite3_column_text(pStmt, indx)) ;
+                                       char * fval = (char*)sqlite3_column_text(pStmt, indx);
+                                       if(fval != NULL) field->key = dx_string_createU(NULL,fval) ;
+                                       else
+                                           field->flags = DX_FIELD_VALUE_NULL ;
+                                        
                                    }
                                   break ;
            case SQLITE_BLOB     : {
