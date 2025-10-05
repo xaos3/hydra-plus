@@ -200,6 +200,7 @@ time_t dx_convert_to_time(char *str)
 	error   = false ;
 	time.tm_sec = dx_string_to_int(elem,&error)      ;
 
+	time.tm_isdst = -1 ;
 	free(elem);
 	if(error == true){return -1 ;}
 	/*every other element after that is uselless for us*/
@@ -452,6 +453,7 @@ time_t dx_add_days(char *date,DXLONG64 days_to_add)
 	/*every other element after that is uselless for us*/
 
 	time.tm_mday = time.tm_mday + days_to_add ;
+	time.tm_isdst = -1 ;
 	/*do the magic of the mktime!!!*/
 
 	return mktime(&time);
@@ -542,6 +544,7 @@ time_t dx_convert_to_time_struct(char *str,struct tm *time)
 	elem   = dxCopyStrToChar(&strindx,' ',"") ; /*until the end actually*/
 	error   = false ;
 	time->tm_sec = dx_string_to_int(elem,&error)      ;
+	time->tm_isdst = -1 ;
 
 	free(elem);
 	if(error == true){return -1 ;}
