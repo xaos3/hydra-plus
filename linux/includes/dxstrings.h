@@ -1557,6 +1557,11 @@ PDX_STRING dx_string_concat(const PDX_STRING str1 , const PDX_STRING str2)
 				tindx = &nstr->stringa[str1->bcount] ;
 				memcpy(tindx,str2->stringa,str2->bcount);
 				//the terminating 0 is already set by the dx_string_create_uninit
+				/*
+				  the nstr->len is not correct in this point because is very possible 
+				  that we have a utf8 string with multibyte sequences, we wil set this here
+				*/
+				nstr->len = str1->len + str2->len ;
 				return nstr ;
 			}
 			break ;

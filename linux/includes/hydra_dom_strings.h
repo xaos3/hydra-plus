@@ -2064,13 +2064,13 @@ bool hdr_domStringCharPos(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_
 
    	if((chr->type != hvt_simple_string)&&(chr->type != hvt_simple_string_bcktck)&&(chr->type != hvt_codepoint))
 	{
-	   printf("String.CharPos($char : Char,$from_indx:Integer):Integer The second parameter is not of a string or character type.\n");
+	   printf("String.CharPos($char : Char,$from_indx:Integer):Integer The first parameter is not of a string or character type.\n");
 		goto fail ;
 	}
 
 	if(((chr->type != hvt_simple_string)&&(chr->type != hvt_simple_string_bcktck))&&(((PDX_STRING)chr->obj)->len != 1))
 	{
-	   printf("String.CharPos($char : Char,$from_indx:Integer):Integer The second parameter is not a single character.\n");
+	   printf("String.CharPos($char : Char,$from_indx:Integer):Integer The second parameter is not an Integer.\n");
 	   goto fail ;
 	}
 
