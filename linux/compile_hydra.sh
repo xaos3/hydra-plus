@@ -50,11 +50,14 @@ gcc  -w -m64 -O3 -m64 -Iincludes/thirdparty/base64 -c includes/thirdparty/base64
 echo "gcc -> Compile cuba zip support..."
 gcc  -w -m64 -O3 -m64 -Iincludes/thirdparty/zipcuba -c includes/thirdparty/zipcuba/zip.c -o hydra+/obj/zip.o
 
+echo "gcc -> Compile password hashing support..."
+gcc  -w -m64 -O3 -m64 -Iincludes/thirdparty/monocypher -c includes/thirdparty/monocypher/monocypher.c -o hydra+/obj/monocypher.o
+
 echo "gcc -> Compile Hydra..."
 gcc  -w -m64 -O3 -m64 -Iincludes -Iincludes/thirdparty -Iincludes/thirdparty/mariadb/includes -c hydra+/hydra.c -o hydra+/obj/main.o
 
 echo "gcc -> Linking..."
-gcc  -o hydra+/bin/hydra+ hydra+/obj/buffer.o hydra+/obj/decode.o hydra+/obj/encode.o hydra+/obj/cthreads.o hydra+/obj/zip.o hydra+/obj/main.o  -m64 -lpthread -ldl -lodbc -lm -lmariadb -s -m64  includes/thirdparty/reproc/libreproc.a includes/thirdparty/wolfssl/libwolfssl.a
+gcc  -o hydra+/bin/hydra+ hydra+/obj/buffer.o hydra+/obj/decode.o hydra+/obj/encode.o hydra+/obj/cthreads.o hydra+/obj/zip.o hydra+/obj/monocypher.o hydra+/obj/main.o  -m64 -lpthread -ldl -lodbc -lm -lmariadb -s -m64  includes/thirdparty/reproc/libreproc.a includes/thirdparty/wolfssl/libwolfssl.a
 
 fi
 
