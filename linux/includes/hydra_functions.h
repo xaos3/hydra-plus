@@ -611,6 +611,7 @@ PHDR_SYS_FUNC_PARAMS hdr_sys_func_free_params(PHDR_SYS_FUNC_PARAMS sys_params)
 #include "hydra_dom_db.h"
 #include "hydra_utils.h"
 #include "hydra_images.h"
+#include "hydra_crypthash.h"
 
 /*
 *******************************************************************************
@@ -1773,7 +1774,11 @@ bool hdr_inter_handle_function(PHDR_INTERPRETER inter ,PHDR_COMPLEX_TOKEN token,
 			if (hdr_inter_fast_str(token->ID, "convertImage", 12) == true) return hdr_imgConvertImage(inter, token,result) ;
 			if (hdr_inter_fast_str(token->ID, "resizeImage", 11) == true) return hdr_imgResizeImage(inter, token,result) ;
 
-
+			/*password hash functions*/
+			//if (hdr_inter_fast_str(token->ID, "createSalt", 10) == true) return hdr_hashCreateSalt(inter,token,result) ;
+			if (hdr_inter_fast_str(token->ID, "createRandomId", 14) == true) return hdr_hashCreateRandomId(inter,token,result) ;
+			if (hdr_inter_fast_str(token->ID, "hashString", 10) == true) return hdr_hashHashString(inter,token,result) ;
+			if (hdr_inter_fast_str(token->ID, "hashStringWithSalt", 18) == true) return hdr_hashHashStringWithSalt(inter,token,result) ;
 			/* check for a user function. The system functions are always in priority , so no overrides can exists.
 			   if a user function has the same name as a system function then the user function will not be executed.
 			*/

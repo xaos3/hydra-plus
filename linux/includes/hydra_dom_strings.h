@@ -1417,8 +1417,16 @@ bool hdr_domStringCopyIndxBinary(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN toke
 		 else
 			 to_indx = param2->real ;
 
+		  /*check if the indexes are invalid*/
+		 PDX_STRING thstr = (PDX_STRING)for_var->obj ;
+		 if(from_indx >= thstr->bcount) 
+		 {
+		    printf("CopyIndexBinary($from_indx,$to_indx):[simple string] The from index that was supplied is bigger than the length of the string.\n");
+		    goto fail ;
+		 }
 
-		 PDX_STRING str = CopyIndxToIndx((PDX_STRING)for_var->obj,from_indx,to_indx) ;
+
+		 PDX_STRING str = CopyIndxToIndx(thstr,from_indx,to_indx) ;
 		 
 		 *result = hdr_var_create(NULL,"",hvf_temporary_ref,NULL) ;
 		 hdr_var_set_obj(*result,str)		  ;
@@ -1519,8 +1527,15 @@ bool hdr_domStringCopyBinary(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, P
 		 else
 			 char_len = param2->real ;
 
+		 /*check if the index is invalid*/
+		 PDX_STRING thstr = (PDX_STRING)for_var->obj ;
+		 if(from_indx >= thstr->bcount) 
+		 {
+		    printf("CopyBinary($from_indx,$char_count):[simple string] The index that was supplied is bigger than the length of the string.\n");
+		    goto fail ;
+		 }
 
-		 PDX_STRING str = CopyIndx((PDX_STRING)for_var->obj,from_indx,char_len) ;
+		 PDX_STRING str = CopyIndx(thstr,from_indx,char_len) ;
 		 
 		 *result = hdr_var_create(NULL,"",hvf_temporary_ref,NULL) ;
 		 hdr_var_set_obj(*result,str) ;   
@@ -1626,6 +1641,13 @@ bool hdr_domStringCopyCharBinary(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN toke
 		 else
 			 from_indx = param1->real ;
 
+          /*check if the index is invalid*/
+		 PDX_STRING thstr = (PDX_STRING)for_var->obj ;
+		 if(from_indx >= thstr->bcount) 
+		 {
+		    printf("CopyCharBinary($from_indx,$char):[simple string] The index that was supplied is bigger than the length of the string.\n");
+		    goto fail ;
+		 }
 
 		 char *buff = CopyStrToChar(((PDX_STRING)for_var->obj)->stringa, &from_indx , th_char)  ;
 		 PDX_STRING str = dx_string_create_bU(buff);
@@ -1734,7 +1756,15 @@ bool hdr_domStringCopyIndx(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHD
 			 to_indx = param2->real ;
 
 
-		 char *buf = utf8CopyIndexToIndex(((PDX_STRING)for_var->obj)->stringa,from_indx,to_indx) ;
+		 /*check if the index is invalid*/
+		 PDX_STRING thstr = (PDX_STRING)for_var->obj ;
+		 if(from_indx >= thstr->bcount) 
+		 {
+		    printf("CopyIndx($from_indx,$to_indx):[simple string] The from index that was supplied is bigger than the length of the string.\n");
+		    goto fail ;
+		 }
+
+		 char *buf = utf8CopyIndexToIndex(thstr->stringa,from_indx,to_indx) ;
 		 PDX_STRING str = dx_string_create_bU(buf) ;
 
 		 *result = hdr_var_create(NULL,"",hvf_temporary_ref,NULL) ;
