@@ -157,7 +157,7 @@ I forbade it :D !
 -String encoding
 
 Hydra+ uses strings encoded in UTF8 ONLY ! There is a type that is the [Unicode String] that is four bytes long
-but it is expiremental and not fully supported yet. For that reason is not documented in this file.
+but it is experimental and not fully supported yet. For that reason is not documented in this file.
 For different encodings use the appropriate convertion functions (if exists) or the [Bytes] type.
 
 --Variables, Blocks, Scope and Functions
@@ -280,6 +280,9 @@ This means that you forgot to Free the $clConn. If you do not Free the variable 
 and then in the next execution the functiom try to set the variable to [undefine], then the interpreter will emit this error.
 I decided to left this error in place , as it can help to eliminate some memory leaks, when a .Free() is forgotten.
 
+NOTE : If you re assign a complex type then the old object that the variable points WILL NOT be automatically freed.
+For example the $list = List.CreateList(); ... $list[0] = "hello" ; ... $list = List.CreateList();
+It will create a memory leak! First free the list before re assign! 
 
 --- Run , execute , input and output ---
 
@@ -663,7 +666,7 @@ This can be very important for checking the status of the function or to send sp
 Special commands for the threads
 
 [terminate "some id"] -> Send the terminating signal to the thread from another thread. If the id is "main" then Hydra+
-will be terminated. For example : terminate "main" ;
+main script will be terminated. For example : terminate "main" ;
 
 [message "some string"] -> A thread other than the main thread can call this instruction to set a message 
 in the threads special info.(See the following in the text).   
@@ -942,7 +945,7 @@ simple ansi characters, as it ommits the checks and the validity code for the ut
 .Empty()
 The function empty all the contents of the caller. The [Simple String] can achieve the same result with the syntax of $str = ""; 
 
-.CopyIndx($from_indx,$to_indx):[simple string]
+.CopyIndex($from_indx,$to_indx):[simple string]
 Return a new string that its contents are the characters from $from_indx to $to_indx.
 The function is applicable only to [Simple String].
 
@@ -997,7 +1000,7 @@ The function is applicable only to [Simple String].
 Warning! Always check the $error variable. If its empty ("") then the conversion was a success,
 else an error message will be set.
 
-$str.ToReal(out-> $error : [simple string]):[Real] 
+.ToReal(out-> $error : [simple string]):[Real] 
 The function returns the string converted to a real number. The function is applicable only to [Simple Strings].
 Warning! Always check the $error variable. If its empty ("") then the conversion was a success, 
 else an error message will be set.
@@ -1046,6 +1049,8 @@ but it search in reverse (from $indx to 0) .
 .Explode($sep:[Simple String]):StringList
 The function explodes the caller to parts based of the $sep as separator and returns a stringlist.
 The separator can be one or multiple characters. Examples of separators : [,][->],[=],[==] etc
+The function preserves the "empty" spaces between the separators. For example the 
+test->->hello string with the [->] as a separator will return three elements and not two
 
 .ExplodeChar($separator : Integer (as char) ):StringList
 The function explodes the caller to parts based of the $seperator as separator and returns a string list.
@@ -1053,8 +1058,9 @@ This function must be preffered for one byte char separators than [Explode] as i
 For example , for a string ~10ΜΒ with long lines in a specific machine, an .Explode(10) consumes 37 seconds 
 while the ExplodeChar(10) consumes 0.016 seconds. The difference is great and is mainly because
 [Explode] do a lot of checking for the validity and conversion of the UTF8 encoding and simultaneously
-can use as separators full strings, while 
-the [ExplodeChar] does not and simple parsing the bytes of the data.   
+can use as separators full strings, while the [ExplodeChar] does not and simple parsing the bytes of the data.   
+Note that contrary to the Explode() the ExplodeChar() does not preserve empty elements.
+For example in the string elem1..elem2 with separator the [.], the function will return two elements and not three.
 
 .UrlEncode($space_as_plus:Boolean):[Simple String]
 The function encodes the caller as a safe for url string. If the $space_as_plus is true then the space will be encoded
@@ -1139,7 +1145,7 @@ The function creates a native list that describes an xml formated string.
 See the section XML support.
 The function is applicable only to [Simple Strings].
 
-.ConvertEUTF8()
+.ConvertEUTF8():String
 The function converts a string with escaped utf8 characters like
 \u00fc to normal utf8 strings.
 
@@ -1291,7 +1297,7 @@ The following functions behave in the same way that the same functions of the Si
 .ToJson(out-> $error:String)
 .NamedIndex
 
--- Hydra Domain --
+-- Domain [Hydra] --
 
 --Functions
 
@@ -1549,7 +1555,8 @@ This method connects to a MariaDB/MySQL database. The $error will be empty in su
 The returned object is a DatabaseConnection. You can check if the connection is valid with the .IsValid() function.
 
 Database.ODBC($conn_string: String,out-> $error:String ,blob_as_string : Boolean);
-Connect to a database via ODBC.
+Connect to a database via ODBC the $error can have an error in failure or the ODBC messages for the connection.
+check with the function .IsValid() if the connection was been succesfull.
 The $conn_string must have the syntax of the ODBC connection string. 
 
 Example for the SQLServer : 
@@ -1621,6 +1628,9 @@ The function returns the record count of the dataset.
 
 .ToJson():String
 The function returns the dataset as a JSON formated string.
+
+.IsValid():Boolean
+Call this function to determine if the object is valid for use .
 
 .Free();
 Frees all the memory and sets the variable to undefined.
@@ -1852,6 +1862,24 @@ Beware that if you supply a UTF8 char other of the ASCII ones ,
 then the function will return the numerical value of the first byte of the 
 UTF8 character.
 
+createRandomId($bytes : Integer):String
+Returns a true random id in hexadecimal form. The $bytes parameters
+is the length of the string in bytes. For example a $bytes = 6 returns a 12 characters
+length string.
+
+hashString($string:String):String
+Returns a string with the hash of the given string and the sdalt that was used.
+The form of the returned string is : 
+$hash=4d8f0fbde1a2a8a5a76a94e36f1d4fb839f28c86f8bc9196714765d9fb741038$salt=06eb726601759de017e1d3ddc1353406
+
+hashStringWithSalt($string:String,$salt:String):String
+Returns in hexadecimal form the hash of the $string with the $salt as salt.
+
+Note : The [hashString] and [hashStringWithSalt] can be used for storing passwords 
+in a safe form. The comparison of the hashes MUST be done in the hydra script like 
+if($hash1 == $hash2)... This is not as secure with a native [compare] function, but its good enough
+For better security, a constant delay when the password is verified can be introduced to hinder brute force attacs. 
+
 --Special functions
 
 $some_var.IsUndef() : Boolean
@@ -1905,13 +1933,15 @@ show_warnings
 This directive forces the interpreter to show the warnings that are produced. 
 
 show_memory
-This is a loader directive used for debugging. When this directive is present in the script (better after the include directive)
+This is a loader directive used for debugging. When this directive is present in the script (better immidiately after the include directive)
 it will enable the variable logging. This will make the scripts to run slower, but after the script
 termination it will output all the variables that their memory was not freed at the end of 
 the execution. This is very usefull to catch memory leaks. This functionality is somehow
 limited , as it does not tell you when this variable was created and in what line ,
 but if your code is well structured and the variables well defined its not very hard 
-to locate the problematic ones.
+to locate the problematic ones. If when the Script end outputs something like Variable -> 
+without any name, dont worry ,
+this are some internal variables that the logger does not remove but are native to the script.
 
 show_version
 The command prints the Hydra+ current version.
