@@ -1535,6 +1535,13 @@ bool hdr_domStringCopyBinary(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, P
 		    goto fail ;
 		 }
 
+         /*check if the char_len is in the correct limits*/
+		 if((from_indx+char_len) > thstr->bcount)
+		 {
+		   printf("CopyBinary($from_indx,$char_count):[simple string] The index + the $char_count that was supplied is bigger than the length of the string.\n");
+		   goto fail ;
+		 }
+
 		 PDX_STRING str = CopyIndx(thstr,from_indx,char_len) ;
 		 
 		 *result = hdr_var_create(NULL,"",hvf_temporary_ref,NULL) ;

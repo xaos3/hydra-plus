@@ -1971,7 +1971,7 @@ PDX_STRING CopyIndx(PDX_STRING str , DXLONG64 indx,DXLONG64 len)
 {
   //get the position of the character
   if(indx < 0) return NULL ;
-  if( ((indx+len) > str->bcount-1)||(len < 0) ) len = str->bcount ;
+  if(len<0)len =0;
 
   //copy the string
   char * buf = (char*)malloc(len+1) ;
@@ -3812,7 +3812,7 @@ char *utf8CopyIndexToIndex(char *utf8str , DXLONG64 from_index , DXLONG64 to_ind
     for(DXLONG64 i = from_index;i <= to_index ;i++ )
     {
       DXCHAR ch = dx_get_utf8_char_ex2(&chindx,&prevch,&char_len) ;
-      if(ch == 0) break ;
+      if(ch == 0) break ;/*protection against invalid to_index*/
       buf_size = buf_size + char_len ;
     }
  
