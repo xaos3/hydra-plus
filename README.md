@@ -132,7 +132,6 @@ If you have any question feel free to contact me. I may not respond immediately 
 
 Useful files can be obtained directly from this repository and the deus-ex.gr page:
 
-- [Linux source code archive](Linux.zip)
 - [Hydra+ documentation](hydra%2B%20documentation.txt)
 - [Notepad++ syntax highlighting file](notepad++-hydra2-ver3.xml)
 - [Windows interpreter](http://deus-ex.gr/downloads/hydra+Win.zip)
