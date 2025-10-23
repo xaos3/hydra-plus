@@ -34,6 +34,7 @@ image manipulation support (stbimage etc)
 SQLite native support (amagalmation source files),
 MariaDB support (mariadb connector)
 ODBC support via the native library of the compiler
+monocypher (as from 2025-10-20 for easy password hashing and random string creation)
 
 If you are thinking that this is half the code of Hydra+ , well maybe xD.
 
