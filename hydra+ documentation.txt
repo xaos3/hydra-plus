@@ -66,11 +66,11 @@ This makes the simple strings inefficient, but good enough for most of the opera
 
 - To release the memory at will, use the appropriate functions for the specific datatype.
 
-Warning : Hydra+ runs a simple algorithm when terminates to clean up the memory avoiding weird [access violation] errors, 
+Note : Hydra+ runs a simple algorithm when terminates to clean up the memory avoiding weird [access violation] errors, 
 in case of existing cross references between variables that the script code has not handled 
 (released or freed when are not used any more).
-In actuality no impact in memory consumption or in efficiency 
-this condition has, as this is a problem when the Hydra+ is terminating, so a non issue, because we can skip 
+In actuality no impact in memory consumption or in efficiency this has, 
+as this is a problem when the Hydra+ is terminating, so a non issue, because we can skip 
 the memory clean up all together. But in the future may I make it possible to call a full Hydra+ object to execute a script
 from another Hydra+ object and then an access violation or a moderate memory leak will be very bad.
 
@@ -93,12 +93,13 @@ that Hydra+ will need. Of course the programmer can create its own functions to 
 Another point of consideration is the [Dataset] type.
 A dataset is an object that holds the results of a [select] query. When the query executes succesfully,
 Hydra+ loads ALL the results in the dataset from the database driver to the local [Hydra+] memory.
-So very large results will occupy a lot of memory.
+So very large results will occupy a lot of memory. Similary with the operations in large files,
+a pagination strategy can be deployed to handle this problem.
 
 --- Hydra+ release model --
 
-Hydra+ will be an open source project AFTER rigorous testing and operation under real conditions. 
-Its license will be one of the many open source licenses with the most probable the MIT license.
+Hydra+ is an open source project. 
+It's released under the MIT license. For more information go to https://github.com/xaos3/hydra-plus
 
 Creator : Mourgis Nikolaos
 Web Page : deus-ex.gr
@@ -143,7 +144,7 @@ That happens because it is possible a [token] to be acompanied by a calculation 
 So function names are coupled with its parenthesis to be easily recognized by the interpreter. 
 
 Another important syntax limitation is that the interpreter does not resolve variables that
-are returned from functions, to take part in calculations.
+are returned from functions, and thus cannot take part in calculations.
 For example the someFunction().ToString(0) or someFunction()[$index] ARE FORBIDDEN.
 To use the returned variables assign them first. Example : $var = someFunction(); echo($var.ToString(0)); 
 
@@ -151,7 +152,7 @@ To use the returned variables assign them first. Example : $var = someFunction()
 
 Yes the above syntax it is forbidden. Why you ask? I have suffer while trying to see and understand syntaxes in languages
 like javascript with so many chained functions that make you dizzy. 
-I hate it. I use it ofcourse when I write code because is really convinient. But I hate it so in my language
+I hate it. I use it of course when I write code because it is really convinient. But I hate it so in my language
 I forbade it :D !      
 
 -String encoding
@@ -217,6 +218,10 @@ go releaseList();
  
 In the above example the [go] instruction does not changes the code readability. But if the function [afunc]
 needed to free 10 different objects in 10 different branches , then this syntax would be much more cleaner and easier to maintain.
+
+NOTE! The user functions even in the [go] mode, cannot access the variables in the maincode block. This means
+that you cannot use the go cleanup() syntax if the cleanup() function refer to variables in the main code block.
+Use the go functionality in an object , an async or some other large function. 
 
 -Strings in lists
 
@@ -597,9 +602,8 @@ Naturally, Hydra+ supports the creation of functions. A function can be declared
 To declare a function, write : 
 func function_name($param1,$param2,.,.,.,.){function body}
 
-A function can return a variable of any type. Every parameter in the function is passed as an absolute reference
-to the variable (except when the parameter is in fact a calculated expression) and not as a copy of the 
-object or a reference of the object of the variable (except in an async see the async section). So be cautious with the memory deallocation and the 
+A function can return a variable of any type. Every parameter in the function is passed as a reference
+to the data of the variable, so be cautious with the memory deallocation and the 
 altering of the parameters values.
 
 Example :
@@ -1546,7 +1550,7 @@ Database.SQLite($dbname : String,$doCreate:Boolean, out->$error:String):Database
 Use this method to create a new connection to an SQLite database. The $dbname is the filename of the SQLite database.
 If the $doCreate is false then the function will not try to create the database and the $error will have an appropriate description.
 If the $doCreate is true then the function will try to create a new database if the database does not exists.
-The $error will be empty in success or set with the error . The returned object is a DatabaseConnection object. 
+The $error will be empty in success or set with the error. The returned object is a DatabaseConnection object. 
 You can check if the connection is valid with the .IsValid() function .
  
 Database.MariaDB($host:String , $user:String, $pass:String, $db:String, $port:Integer, out -> $error:String):DatabaseConnection
