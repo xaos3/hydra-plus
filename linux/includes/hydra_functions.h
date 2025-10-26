@@ -105,8 +105,9 @@ enum hdr_user_func_result hdr_run_user_function(PHDR_INTERPRETER inter,PHDR_COMP
 	  if the obj is not NULL then the search is done in the object function list first and then in the scripts function list.
 	  If the as_go (special calling for accessing the local variables) is true 
 	  then the user function parent code block will be set to the interpreter current code.
-	  2025-08-02 The function will set the ->is_running flag of the function to true to implement the forbit recursive without
-	  detach scheme.
+	  2025-08-02 The function will set the ->is_running flag of the function to true to implement the [forbid recursive without
+	  detach] scheme.
+
 	*/
 
 	PHDR_CUSTOM_FUNCTIONS_LIST lst = inter->funcs ;
@@ -119,7 +120,6 @@ enum hdr_user_func_result hdr_run_user_function(PHDR_INTERPRETER inter,PHDR_COMP
 		/*the function is not one of the objects class functions. Change the list and search again*/
 		if(inter->curr_obj != NULL)
 		{
-          // 2025-19-01 I did a bug fix , the inter->funcs in the following instruction was lst.  
 		  if(lst == inter->curr_obj->functions) func = hdr_custom_functions_list_find_gen( inter->funcs , token->ID) ;
 		}
 	}
@@ -128,7 +128,6 @@ enum hdr_user_func_result hdr_run_user_function(PHDR_INTERPRETER inter,PHDR_COMP
 	/*
 	  The function exists , we have to set the interpreter to execute the function code
 	*/
-
 	/*check the parameters count*/
 	if(func->parameters->count != token->parameters->count)
 	{
@@ -139,7 +138,7 @@ enum hdr_user_func_result hdr_run_user_function(PHDR_INTERPRETER inter,PHDR_COMP
 
 	/*we need to setup the parameters of the function and initialize all the variables (not so neccessary but better safe than sorry)*/
 
-	/*set the local block as the parent to permit full access to the local variables, albeit the globals will not be accessible*/
+	/*set the local block as the parent to permit full access to the local variables*/
 	if(as_go == true)
 	{
 	 /*implement the as_go special calling*/
@@ -443,14 +442,30 @@ PHDR_VAR hdr_inter_retrieve_var_from_block(PHDR_INTERPRETER inter, PDX_STRING va
 {
 	/*
 	   the function searches for the varname in the block and if it does not find
-	   a var searches and the parent and the parent's parent etc
+	   a var searches and the parent and the parent's parent etc.
+	*/
+
+	/*
+	  2025-10-26 ->
+	  a function has as parent the main code block , but we do NOT want the functions to have 
+	  access to the variables of the main block EXCEPT the $__ globals , so we will
+	  check the prefix of the variable, if we are in a function and the prefix is not $__
+	  then the variable will be not accessible.
 	*/
 
 	PHDR_VAR var = NULL;
 	PHDR_BLOCK block = inter->current_block;
 	while (block != NULL)
 	{
-		var = hdr_var_list_find_var(inter->current_block->variables, varname);
+		if((inter->curr_func!=NULL)&&(block->ID==1))
+		{
+		  /*check prefix*/
+		  if(varname->len<4) return NULL ;/*its not possible for a global to be < 4 characters long*/
+		  /*last check*/
+		  if((varname->stringa[1]!='_')||(varname->stringa[2]!='_')) return NULL ;
+		}
+
+		var = hdr_block_find_var_local(block,varname) ;
 		if (var != NULL) return var;
 		block = block->parent; /*check its parent*/
 	}
@@ -491,7 +506,11 @@ PHDR_VAR hdr_inter_resolve_extract_var_from_expr(PHDR_INTERPRETER inter ,PHDR_EX
 		{
 			/*return the actual variable*/
 			rvar = hdr_inter_retrieve_var_from_block(inter, token->ID);
-			if (rvar == NULL) return NULL;
+			if (rvar == NULL) 
+			{
+				printf("The variable [%s] is not declared or defined in the scope.\n",token->ID->stringa);
+				return NULL;
+			}
 			/*check if the variable is a literal that has been passed from other functions down to this function*/
 			if (rvar->var_ref == hvf_temporary_ref_user_func)
 			{
@@ -511,12 +530,12 @@ PHDR_VAR hdr_inter_resolve_extract_var_from_expr(PHDR_INTERPRETER inter ,PHDR_EX
 				  }
 				  else
 				  {
-				    printf("The variable type for the literal that was passed as a parameter was not one of the simple types. How is this possible ?.\n");
-					return NULL ;
+				    var->obj = rvar->obj ;
 				  }
 			}
 			else
 				var = rvar ;
+
 			return var; /*handle the NULL in the caller*/
 		}
 	}
@@ -525,8 +544,10 @@ PHDR_VAR hdr_inter_resolve_extract_var_from_expr(PHDR_INTERPRETER inter ,PHDR_EX
 	bool error;
 	rvar = hdr_inter_resolve_expr(inter,expr,&error);
 	/*a parameter can NEVER being NULL*/
-	if (rvar == NULL) return NULL;
-
+	if (rvar == NULL) 
+	{
+		return NULL;
+	}
 	/*the hdr_inter_resolve_expr returns a temporary variable object that is valid only until the function return , so copy it to a variable*/
 	PHDR_VAR res = hdr_var_clone(rvar, "", inter->current_block);
 	/*reset var */
@@ -1953,7 +1974,8 @@ bool hdr_inter_handle_function(PHDR_INTERPRETER inter ,PHDR_COMPLEX_TOKEN token,
 				inter->curr_obj = NULL ;
 				return hdr_domClassReleaseMem(for_var);
 			}
-			/*********************************************/
+
+			/****************Check for a user function*****************************/
 			enum hdr_user_func_result res = hdr_run_user_function(inter,token,result,false) ;
 			/*restore the curr_obj as the function ended*/
 			inter->curr_obj = NULL ;

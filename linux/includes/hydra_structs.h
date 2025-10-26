@@ -1697,6 +1697,26 @@ PHDR_BLOCK hdr_block_copy(PHDR_BLOCK block,PHDR_BLOCK parent)
 
 
 /*************************/
+PHDR_VAR hdr_block_find_var_local(PHDR_BLOCK block, PDX_STRING var_name)
+{
+	/*
+	 returns the variable with this name IF exists.
+	 else returns NULL.
+	 The function checks only the current block, not its parent
+	*/
+
+
+	if(block != NULL)
+	{
+	    PHDR_VAR_LIST current_list = block->variables;
+		PDXL_OBJECT obj = dx_HashReturnItem(current_list->list, var_name,true);
+		if (obj == NULL) return NULL ;
+		PHDR_VAR    var = (PHDR_VAR)obj->obj;
+		if (var != NULL) return var;
+	}
+
+	return NULL;
+}
 PHDR_VAR hdr_var_list_find_var(PHDR_VAR_LIST list, PDX_STRING var_name)
 {
 	/*
@@ -1704,9 +1724,12 @@ PHDR_VAR hdr_var_list_find_var(PHDR_VAR_LIST list, PDX_STRING var_name)
 	 else returns NULL.
 	 The function check all the nested block hierarchy
 	*/
+
+
 	PHDR_BLOCK   current_block = list->block;
 	while (current_block != NULL)
 	{
+
 		PHDR_VAR_LIST current_list = current_block->variables;
 		PDXL_OBJECT obj = dx_HashReturnItem(current_list->list, var_name,true);
 		if (obj == NULL) goto check_parent ;

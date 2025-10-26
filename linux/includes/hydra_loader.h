@@ -1829,7 +1829,7 @@ bool hdr_loader_h_construct_switch(PHDR_LOADER loader, char *blk)
 bool hdr_loader_h_func_exists(PHDR_LOADER loader, char *func_name)
 {
 
-    PDXL_NODE node = loader->functions->start;
+    PDXL_NODE node = loader->current_func_list->start;
     while (node != NULL)
     {
         PDXL_OBJECT      obj   = node->object;

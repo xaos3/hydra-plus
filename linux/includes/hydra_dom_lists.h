@@ -1520,14 +1520,14 @@ bool hdr_domJsonListToString(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, P
    bool is_json = hdr_inter_ret_bool(params->params[0],&type_error) ; 
    if(type_error == true)
    {
-		printf("The parameter must be a bool\n");
+		printf("The first parameter must be a bool\n");
 		goto fail ;
    }
 
    PDX_STRING error = hdr_inter_ret_string(params->params[1],&type_error) ; 
    if(type_error == true)
    {
-		printf("The parameter must be a simple string\n");
+		printf("The second parameter must be a simple string\n");
 		goto fail ;
    }
    
