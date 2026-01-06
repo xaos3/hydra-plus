@@ -945,79 +945,14 @@ PDX_STRING dx_UintToStr(uint64_t value)
 
 PDX_STRING dx_FloatToStr(long double value,int dig)
 {
+    if (dig < 0) dig = 0;
+    if (dig > 9) dig = 9;
 
-    if ( dig > 9 )dig = 9;
+    char buf[64];
 
-    DXLONG64 body  = value ; // get the integer part
+    snprintf(buf, sizeof(buf), "%.*Lf", dig, value);
 
-    long double dek = value - body ;
-    if(dek < 0)dek = dek * -1 ;
-
-    PDX_STRING bdy = dx_IntToStr(body);
-
-    if ( dek == 0 )
-    {
-        char decim[10] ;
-        for(int i = 0;i<dig;i++)
-         decim[i]='0';
-
-        decim[dig] = 0 ; // terminate string
-
-        PDX_STRING dec  = dx_string_createU(NULL,decim);
-        PDX_STRING dot  = dx_string_createU(NULL,".")  ;
-        PDX_STRING res = NULL  ;
-        PDX_STRING midd = NULL ;
-        if(dig != 0)
-        {
-         midd = dx_string_concat(bdy,dot)    ;
-         res  = dx_string_concat(midd,dec)              ;
-        }
-        else
-            res = dx_string_createU(NULL,bdy->stringa) ;
-
-        dx_string_free(bdy);
-        dx_string_free(dec);
-        dx_string_free(dot);
-        dx_string_free(midd);
-        return res;
-    }
-
-
-    /* find the decimal part */
-
-    char decim[10] ;
-    int i ;
-    for (i = 1; i <= dig ; i++ )
-    {
-      long double base = (1 / pow(10,i)) ;
-      char prt =((unsigned int)(dek / base)) +48 ;
-      decim[i-1] = (char)prt;
-      dek = dek - ((unsigned int)(dek / base)) * base ;
-    }
-
-    decim[i-1] = 0 ;
-
-
-    /* -------------------------------- */
-    PDX_STRING res = NULL ;
-    if(dig > 0)
-    {
-        PDX_STRING dekad = dx_string_createU(NULL,decim) ;
-        PDX_STRING dot   = dx_string_createU(NULL,".") ;
-        PDX_STRING midd  = dx_string_concat(bdy,dot);
-        res   = dx_string_concat(midd,dekad);
-    
-        dx_string_free(bdy)    ;
-        dx_string_free(dekad ) ;
-        dx_string_free(dot)    ;
-        dx_string_free(midd)   ;
-    }
-    else
-    {
-      res   = bdy ;
-    }
-
-    return res;
+    return dx_string_createU(NULL, buf);
 }
 
 DXLONG64 dx_StringToInt(PDX_STRING str,bool *error)

@@ -47,7 +47,7 @@ bool hdr_json_check_for_esc_unicode(char *str_indx)
 	*/ 
 
 	if(*str_indx == 0) return false ;
-	if((*str_indx == 'u')||(*str_indx == 'U'))
+	if(*str_indx == 'u')
 	{
 	   /*we will unroll the loop*/
        str_indx++ ; 
@@ -81,6 +81,7 @@ char *hdr_json_copy_string(char **json,PDX_STRING error)
   char *str = NULL ;
   char *temp_json = *json ; 
   temp_json++ ; /*skip the first " */
+
   /*calculate the memory that we will need and do the error checking*/
   DXLONG64 bcount = 0 ;
   while(*temp_json != 0)
@@ -984,6 +985,7 @@ PDX_STRING hdr_json_h_replace_cntrl(PDX_STRING val)
 
   PDX_STRINGLIST strl = dx_stringlist_create() ;
   char accum[512] ;
+  memset(accum, 30, 512);
   accum[511] = 0  ;
   char *accum_indx = accum ;
   char *str_indx = val->stringa ;
@@ -1465,7 +1467,7 @@ PDX_STRING hdr_json_db_h_gent(DXLONG64 ftype)
 			return dx_string_createU(NULL,"DATETIME") ;
 		}
 
-		default :  dx_string_createU(NULL,"UNKNOWN") ;
+		default :  return dx_string_createU(NULL,"UNKNOWN") ;
 	}
 
 	return NULL ;

@@ -98,7 +98,7 @@ PDX_STRING hdr_Utf8CopyUntilChar(PDX_STRING source , DXUTF8CHAR c , DXLONG64 *fr
         return CopyIndxToIndx(source,start_indx,source->bcount-1) ;
     }
 
-    /*parse all the string to find the positions for copyng*/
+    /*parse all the string to find the positions for copying*/
     DXUTF8CHAR cc1 = 0 ;
     int char_len   = 0 ;
     DXLONG64 byte_len = 0 ; 
@@ -118,6 +118,9 @@ PDX_STRING hdr_Utf8CopyUntilChar(PDX_STRING source , DXUTF8CHAR c , DXLONG64 *fr
     {
         /*the character was not found OR found but its the first character of the search so nothing will be copy*/
         if(cc1 != c) *fr_indx = -1 ;
+        else 
+           (*fr_indx)++ ;
+          
         return dx_string_createU(NULL,"") ;
     }
 
@@ -492,12 +495,10 @@ DXLONG64 _count_bytes(char *chars)
                       {
                         cnt = cnt+4 ; /*we calculate 4 bytes for the codepoint because we do not now exactly the size and we do not want to stress the cpu to calculate it*/
                         indx = indx+6 ; /*next character*/
+                        continue ;
                       }
-                      else
-                      {
-                        indx++ ;
-                        cnt++;
-                      }
+          indx++ ;
+          cnt++;
         }
         else
         {

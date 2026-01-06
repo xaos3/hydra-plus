@@ -1474,8 +1474,7 @@ bool hdr_domStringCopyIndxBinary(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN toke
 bool hdr_domStringCopyBinary(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PHDR_VAR for_var,PHDR_VAR *result)
 {
 	/*
-	 copy the string from an index to an index. If the end index is bigger than the string length then
-	 the string until the end is returned
+	 copy the string from an index to an index.
 	*/
 
 	if (token->parameters->count != 2)
