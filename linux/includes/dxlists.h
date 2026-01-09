@@ -2248,7 +2248,10 @@ PDX_STRING dx_stringlist_text(PDX_STRINGLIST list,bool unix_style)
     /*add the line feed*/
 
     if(unix_style == true)
-    *tindx = '\n';
+	{
+      *tindx = '\n';
+	  tindx++ ;
+	}
     else
     {
         *tindx = '\r';
