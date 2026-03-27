@@ -255,7 +255,7 @@ enum exec_state hdr_async_run_function(PHDR_INTERPRETER inter , PHDR_CUSTOM_FUNC
 	{
 	  printf("Error creating the new thread interpeter functions list for the async.\n") ;
 	  hdr_custom_function_free(async_func) ;
-	  hdr_interpreter_free(async_inter,true)     ;
+	  hdr_interpreter_free(async_inter,true)     ; /*the async params are being freed in here */
 	  return exec_state_error ;
 	}
 
@@ -291,6 +291,7 @@ enum exec_state hdr_async_run_function(PHDR_INTERPRETER inter , PHDR_CUSTOM_FUNC
 	  hdr_interpreter_free(async_inter,true)     ;
 	  free(cthread);
 	  free(param)  ;
+	  free(args)   ; /*??? this was missing*/
 	  return exec_state_error ;
 	}
 	
@@ -304,6 +305,7 @@ enum exec_state hdr_async_run_function(PHDR_INTERPRETER inter , PHDR_CUSTOM_FUNC
 	  hdr_interpreter_free(async_inter,true)     ;
 	  free(cthread);
 	  free(param)  ;
+	  free(args)   ; /*??? this was missing*/
 	  return exec_state_error ;
 	}
 	

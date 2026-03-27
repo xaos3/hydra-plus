@@ -617,6 +617,9 @@ bool dx_h_sqlite_add_row_to_dataset(sqlite3_stmt *pStmt ,PDX_SQLITE sqlite, PDX_
                                        blob->count = bytes_count ;
                                        if(blob->data == NULL)
                                        {
+                                           free(blob); /*??? was missing*/
+                                           dx_db_field_free(field); /*??? was missing*/
+                                           dx_db_row_free(row);/*??? was missing*/
                                            dx_string_createU(sqlite->error,"Error on memory allocation for the row.");
                                            sqlite->error_code = DX_DB_GENERAL_ERROR ;
                                            return false ;
@@ -1213,8 +1216,9 @@ bool dx_odbc_create_rows(PDX_ODBC odbc,PDX_QUERY dquery,SQLHANDLE stmt, PDX_STRI
         {
             case DX_FIELD_VALUE_INT   :
                                         {
-                                            long int val = 0 ;
-                                            ret = SQLGetData(stmt, i, SQL_C_SLONG ,(SQLPOINTER)&val, sizeof(val), &indicator);
+                                          /*change the previous code that used the 32 bit integer to the 64 bit*/
+                                            SQLBIGINT val = 0;
+                                            ret = SQLGetData(stmt, i, SQL_C_SBIGINT, &val, sizeof(val), &indicator);
 
                                             if (indicator == SQL_NULL_DATA)
                                                 field->flags =  DX_FIELD_VALUE_NULL;
@@ -1255,7 +1259,8 @@ bool dx_odbc_create_rows(PDX_ODBC odbc,PDX_QUERY dquery,SQLHANDLE stmt, PDX_STRI
                                                 SQLCHAR    buff[ODBC_BUFFER_LEN] ;
                                                 ret = SQLGetData(stmt, i, SQL_C_BINARY ,(SQLPOINTER)buff, ODBC_BUFFER_LEN, &indicator);
                                                 /* create a buffer large enough to accomodate the blob*/
-												SQLCHAR *nbuff = malloc(indicator);
+												SQLCHAR *nbuff = NULL ;
+                        if(indicator > 0) nbuff = malloc(indicator); /*??? was changed to check the indicator*/
 												DXLONG64 bytes_count = 0 ;
 												if (dx_odbc_retrieve_big_data(stmt,i,ret , indicator, buff , nbuff,&bytes_count) == -1)
                                                     field->flags =  DX_FIELD_VALUE_NULL;
@@ -1301,6 +1306,8 @@ bool dx_odbc_create_rows(PDX_ODBC odbc,PDX_QUERY dquery,SQLHANDLE stmt, PDX_STRI
 
           if (dx_odbc_stm_succeeded(ret,stmt,status)== false)
           {
+             dx_db_field_free(field); /*??? was missing */
+             dx_db_row_free(row);/*??? was missing */
              return false ;
           }
 
@@ -1641,13 +1648,15 @@ PDX_QUERY dx_mariadb_execute(MYSQL * conn ,PDX_STRING query,PDX_STRING status)
   MYSQL_RES *res = mysql_store_result(conn);
   if (res != NULL)
   {
-          PDX_QUERY dquery = dx_db_query_create();
-          // get the number of the columns
-          DXLONG64 num_fields = mysql_num_fields(res);
-          if(num_fields == 0)
-          {
-              return NULL ;
-          }
+    PDX_QUERY dquery = dx_db_query_create();
+    // get the number of the columns
+    DXLONG64 num_fields = mysql_num_fields(res);
+    if(num_fields == 0)
+    {
+        dx_db_query_free(dquery);
+        mysql_free_result(res); /*???? was missing*/
+        return NULL ;
+    }
 
     dx_mariadb_create_header(dquery,res,num_fields,status) ;
     /*

@@ -2137,6 +2137,7 @@ PDX_STRINGLIST dx_stringlist_create()
     return dx_list_create_list();
 
 }
+
 void *dx_stringlist_free(PDX_STRINGLIST list)
 {
     if (list == NULL) return NULL ;

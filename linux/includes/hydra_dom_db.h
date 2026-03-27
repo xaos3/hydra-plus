@@ -294,13 +294,16 @@ bool hdr_dom_db_exec(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_VAR f
               {
                 hdr_inter_print_warning(inter,"The query returned a dataset, this dataset released and returned to void.\n") ;
               }
+
               if(status->len > 0)
               {
                 PDX_STRING nstr = dx_string_createU((PDX_STRING)((*result)->obj),status->stringa) ;
                 hdr_var_set_obj(*result,nstr) ;
               }
+              
               dx_string_free(status);
               dx_db_query_free(res);
+
             }
             else
             {
@@ -580,16 +583,17 @@ bool hdr_dom_db_ret_dataset(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHD
    PDX_STRING query = hdr_inter_ret_string(params->params[0],&type_error) ; 
    if(type_error == true)
    {
-	 printf("The first parameter must be a String.\n");
+	   printf("The first parameter must be a String.\n");
      goto fail ;
    }
 
    PDX_STRING error = hdr_inter_ret_string(params->params[1],&type_error) ; 
    if(type_error == true)
    {
-	 printf("The second parameter must be a String.\n");
+	   printf("The second parameter must be a String.\n");
      goto fail ;
    }
+
    error = dx_string_createU(error,"");
 
    *result            = hdr_var_create(NULL, "", hvf_temporary_ref, NULL) ;
@@ -966,7 +970,7 @@ bool hdr_dom_ds_free(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_VAR f
         PHDR_SYS_FUNC_PARAMS params = hdr_sys_func_init_params(inter,token->parameters,0) ;
         if(params == NULL)
         {
-         printf("The system function Dataset.Free().\n");
+         printf("The system function Dataset.Free() failed.\n");
          return true ;
         } 
 

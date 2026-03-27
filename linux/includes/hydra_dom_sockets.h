@@ -644,6 +644,25 @@ bool hdr_domTCPServerSocketAccept(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN tok
 		goto success ;
 	}
 
+/*set a default receive timeout of 15 minutes*/
+#ifdef _WIN32
+   DWORD timeout;
+
+/* Receive timeout: 120 seconds */
+timeout = 120000;
+setsockopt(csock->sock, SOL_SOCKET, SO_RCVTIMEO,
+           (const char*)&timeout, sizeof(timeout));
+#endif
+
+#ifdef _LINUX
+struct timeval tv;
+
+tv.tv_sec = 120;
+tv.tv_usec = 0;
+setsockopt(csock->sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+#endif
+
+
     /*ok we return the socket*/
 
     success:
@@ -1405,6 +1424,25 @@ bool hdr_domSSLServerAccept(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token, PH
         dx_string_free(ln);
 		goto success ;
 	}
+
+   
+/*set a default receive timeout of 15 minutes*/
+#ifdef _WIN32
+   DWORD timeout;
+
+/* Receive timeout: 120 seconds */
+timeout = 120000;
+setsockopt(ssl->sock, SOL_SOCKET, SO_RCVTIMEO,
+           (const char*)&timeout, sizeof(timeout));
+#endif
+
+#ifdef _LINUX
+struct timeval tv;
+
+tv.tv_sec = 120;
+tv.tv_usec = 0;
+setsockopt(ssl->sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+#endif
 
    /*set the ssl*/   
    if ((ssl->ssl = wolfSSL_new(server->ctx)) == NULL) 

@@ -1467,8 +1467,11 @@ PHDR_VAR hdr_inter_return_data_row_field(PHDR_VAR base_var,PHDR_VAR indx)
 		     var->type    = hvt_bytes   ;
 			 PDX_DB_BLOB blob = (PDX_DB_BLOB)field->obj ;
 			 PHDR_BYTES bytes = hdr_bytes_create(blob->count) ;
-			 /*copy the bytes*/
-			 memcpy(bytes->bytes,blob->data,bytes->length) ;
+			 /* OBSOLETE :: --copy the bytes--   2026-27-03 we will pass the blob as reference. The user MUST not free this , is freed in the row , but if wants to use it 
+			    after the row is invalidated (actually after the dataset is freed) they MUST COPY the bytes to another buffer 
+			 */
+			 /*memcpy(bytes->bytes,blob->data,bytes->length) ;*/
+			 bytes->bytes = blob->data ;
 			 hdr_var_set_obj(var,bytes);
 		   }
 		   case DX_FIELD_VALUE_DATE:
@@ -1601,10 +1604,10 @@ PHDR_VAR hdr_inter_resolve_index(PHDR_INTERPRETER inter, PHDR_VAR base_var, PHDR
 		case hvt_dataset			: 
 		{
 			/*
-			 User MUST free the dataset row as it is copyed from the memory and not be passed as a reference
+			 User MUST free the dataset row as it is create a new wrap object and is not be passed as a direct reference
 			 emit a warning as it is not intuitive and memory leaks are very easy to be created
 			*/
-			if(inter->warnings == true) hdr_inter_print_warning(inter,"MEMORY LEAK WARNING! The row from the dataset is copied and not a reference. Use the .Free function after use. DO NOT USE THE SYNTAX $dataset[$indx].field as it leave the memory allocated.");
+			if(inter->warnings == true) hdr_inter_print_warning(inter,"MEMORY LEAK WARNING! The row from the dataset needs to be released. Use the .Free function after use. DO NOT USE THE SYNTAX $dataset[$indx].field as it leave the memory allocated.");
 			return hdr_inter_return_dataset_row(base_var,indx);
 		}
 		break;

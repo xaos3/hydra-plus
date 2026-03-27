@@ -578,6 +578,7 @@ bool hdr_json_handle_array(PDX_LIST arr, char **str,PDX_STRING error)
 			 {
 				hdr_inter_hlp_concatenate_and_set(error,"An empty token was found in the string. Check the syntax and the ',' characters. String : ",
 				str_indx,"") ;
+				free(token) ; /*??? this was missing*/
 				 goto fail ;
 			 }
 			 /*try to add it as number*/
@@ -925,18 +926,11 @@ PDX_LIST hdrParseJsonString(PDX_STRING json,PDX_STRING error)
  /*check the type , can be an object or array*/
  if(*str_indx=='[')
  {
-  /* if(dxCheckSectionPairing(str_indx,'[',']',"\"") == false) 
-   {
-	   error = dx_string_createU(error,"The string is not a valid JSON string. The closing ']' is missing") ; 
-	   dx_list_delete_list(root) ;
-	   return NULL ;
-   }
-   */
+
    PDX_LIST arr = hdr_json_add_arr_arr(root) ;
    if(hdr_json_handle_array(arr,&str_indx,error) == false )
    {
-	   /*free all the memory in the caller*/
-      
+	   /*free all the memory in the caller*/  
 	   return root ;
    }
 
@@ -945,13 +939,7 @@ PDX_LIST hdrParseJsonString(PDX_STRING json,PDX_STRING error)
  else
 	 if(*str_indx=='{')
 	 {
-	/*   if(dxCheckSectionPairing(str_indx,'{','}',"\"") == false) 
-	   {
-		   error = dx_string_createU(error,"The string is not a valid JSON string. The closing '}' is missing") ; 
-		   root = dx_list_delete_list(root) ;
-		   return NULL ;
-	   }
-	*/
+
 	   PDX_HASH_TABLE obj = hdr_json_add_arr_obj(root) ;
 	   if(hdr_json_handle_object(obj,&str_indx,error)==false) 
 	   {
