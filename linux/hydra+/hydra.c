@@ -108,6 +108,7 @@ int main(int argc, char** argv)
 		SetConsoleOutputCP(CP_UTF8);
 		SetConsoleCP(CP_UTF8);
 	#endif
+	setlocale(LC_NUMERIC, "C"); /*mitigate the problems with the [.] and [,] for the decimal separators. Hydra+ use only [.]*/
 /*************************/
 
     char *main_script       = NULL  ;
