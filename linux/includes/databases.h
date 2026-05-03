@@ -1587,32 +1587,48 @@ void dx_mariadb_create_rows(PDX_QUERY dquery,MYSQL_RES *res,DXLONG64 num_fields,
                 case DX_FIELD_VALUE_TEXT  :
                                              {
                                                     if (row[i] == NULL)
-                                                    field->flags =  DX_FIELD_VALUE_NULL;
+                                                    {
+                                                      field->flags =  DX_FIELD_VALUE_NULL;
+                                                      field->key = NULL ;
+                                                    }
                                                      else
+                                                     {
                                                         field->flags =  DX_FIELD_VALUE_TEXT ;
-                                                  field->key =  dx_string_createU(NULL,row[i])   ;
+                                                        field->key =  dx_string_createU(NULL,row[i])   ;
+                                                     }
                                              }
                                              break ;
                 case DX_FIELD_VALUE_BLOB  :
                                             {
                                                 if (row[i] == NULL)
+                                                {
                                                    field->flags =  DX_FIELD_VALUE_NULL;
-                                                    else
-                                                      field->flags   =  DX_FIELD_VALUE_BLOB ; /*the application can check this to determine the actual data type*/
-
-                                                 PDX_DB_BLOB blob = malloc(sizeof(struct dx_db_blob));
-                                                 blob->count = lengths[i]             ;
-                                                 blob->data  = malloc(lengths[i])     ;
-                                                 memcpy(blob->data,row[i],lengths[i]) ;
-                                                 field->obj = blob ;
+                                                   field->obj   = NULL ;
+                                                }
+                                                else
+                                                  {
+                                                    field->flags   =  DX_FIELD_VALUE_BLOB ; /*the application can check this to determine the actual data type*/
+                                                    PDX_DB_BLOB blob = malloc(sizeof(struct dx_db_blob));
+                                                    blob->count = lengths[i]             ;
+                                                    blob->data  = malloc(lengths[i])     ;
+                                                    memcpy(blob->data,row[i],lengths[i]) ;
+                                                    field->obj = blob ;
+                                                  }
                                             }
                                             break ;
                 case DX_FIELD_VALUE_DATE  : {
                                                    if (row[i] == NULL)
+                                                   {
                                                      field->flags =  DX_FIELD_VALUE_NULL;
-                                                      else
+                                                     field->key  = NULL ;
+                                                   }
+                                                     else
+                                                     {
                                                         field->flags =  DX_FIELD_VALUE_DATE ;
-                                                    field->key  = dx_string_createU(NULL,row[i]) ;
+                                                        field->key  = dx_string_createU(NULL,row[i]) ;
+                                                     }
+
+                                                   
                                             }
                                             break ;
 
@@ -1833,7 +1849,7 @@ PDX_FIELD  dx_db_field_free(PDX_FIELD field)
        }
 
 
-  /* for safety measures... */
+  /* to mitigate any error in the logic that can create a memory leak */
   if(field->key != NULL)
   {
        dx_string_free(field->key) ;
