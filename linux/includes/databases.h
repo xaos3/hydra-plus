@@ -1244,12 +1244,17 @@ bool dx_odbc_create_rows(PDX_ODBC odbc,PDX_QUERY dquery,SQLHANDLE stmt, PDX_STRI
                                                 PDX_STRING  data = odbc_string_create(NULL,NULL);
                                                 ret = SQLGetData(stmt, i, SQL_C_WCHAR ,(SQLPOINTER)buff, sizeof(buff), &indicator);
                                                 if (dx_odbc_retrieve_big_text(stmt,i,ret , indicator, buff , data) == -1)
+                                                {
                                                     field->flags =  DX_FIELD_VALUE_NULL;
-                                                     else
-                                                        field->flags       =  DX_FIELD_VALUE_TEXT ;
-                                                field->key         =  dx_string_convertU(data) ;
-                                                dx_string_free(data); /*free the memory*/
+                                                    field->key   = NULL ; 
+                                                }
+                                                 else
+                                                   {
+                                                     field->flags       =  DX_FIELD_VALUE_TEXT ;
+                                                     field->key         =  dx_string_convertU(data) ;
+                                                    }
 
+                                                dx_string_free(data); /*free the memory*/
                                          }
                                          break ;
             case DX_FIELD_VALUE_BLOB  :
@@ -1259,18 +1264,22 @@ bool dx_odbc_create_rows(PDX_ODBC odbc,PDX_QUERY dquery,SQLHANDLE stmt, PDX_STRI
                                                 SQLCHAR    buff[ODBC_BUFFER_LEN] ;
                                                 ret = SQLGetData(stmt, i, SQL_C_BINARY ,(SQLPOINTER)buff, ODBC_BUFFER_LEN, &indicator);
                                                 /* create a buffer large enough to accomodate the blob*/
-												SQLCHAR *nbuff = NULL ;
-                        if(indicator > 0) nbuff = malloc(indicator); /*??? was changed to check the indicator*/
-												DXLONG64 bytes_count = 0 ;
-												if (dx_odbc_retrieve_big_data(stmt,i,ret , indicator, buff , nbuff,&bytes_count) == -1)
+                                                SQLCHAR *nbuff = NULL ;
+                                                if(indicator > 0) nbuff = malloc(indicator); /*??? was changed to check the indicator*/
+                                                DXLONG64 bytes_count = 0 ;
+                                                if (dx_odbc_retrieve_big_data(stmt,i,ret , indicator, buff , nbuff,&bytes_count) == -1)
+                                                {
                                                     field->flags =  DX_FIELD_VALUE_NULL;
-                                                     else
+                                                    field->obj   = NULL ;
+                                                }
+                                                 else
+                                                     {
                                                         field->flags =  DX_FIELD_VALUE_BLOB ;
-
-                                                PDX_DB_BLOB blob = malloc(sizeof(struct dx_db_blob)) ;
-                                                blob->count = bytes_count ;
-                                                blob->data  = (char*)nbuff ;
-                                                field->obj =  blob ;
+                                                        PDX_DB_BLOB blob = malloc(sizeof(struct dx_db_blob)) ;
+                                                        blob->count = bytes_count ;
+                                                        blob->data  = (char*)nbuff ;
+                                                        field->obj =  blob ;
+                                                     }
 
                                             } else
                                                  {
@@ -1278,13 +1287,17 @@ bool dx_odbc_create_rows(PDX_ODBC odbc,PDX_QUERY dquery,SQLHANDLE stmt, PDX_STRI
                                                      PDX_STRING  data = dx_string_createW(NULL,L"");
                                                      ret = SQLGetData(stmt, i, SQL_C_WCHAR ,(SQLPOINTER)buff, ODBC_BUFFER_LEN, &indicator);
                                                      if (dx_odbc_retrieve_big_text(stmt,i,ret , indicator, buff , data) == -1)
+                                                     {
                                                         field->flags =  DX_FIELD_VALUE_NULL;
-                                                         else
-                                                            field->flags       =  DX_FIELD_VALUE_TEXT ; /*the application can check this to determine the actual data type*/
+                                                        field->key   = NULL ;
+                                                     }
+                                                      else
+                                                        {
+                                                          field->flags       =  DX_FIELD_VALUE_TEXT ; /*the application can check this to determine the actual data type*/
+                                                          field->key         =  dx_string_convertU(data) ;
+                                                        }
 
-                                                     field->key         =  dx_string_convertU(data) ;
                                                      dx_string_free(data); /*free the memory*/
-
                                                  }
 
                                         }
@@ -1294,10 +1307,16 @@ bool dx_odbc_create_rows(PDX_ODBC odbc,PDX_QUERY dquery,SQLHANDLE stmt, PDX_STRI
                                                 PDX_STRING  data = dx_string_createW(NULL,L"");
                                                 ret = SQLGetData(stmt, i, SQL_C_WCHAR ,(SQLPOINTER)buff, sizeof(buff), &indicator);
                                                 if (dx_odbc_retrieve_big_text(stmt,i,ret , indicator, buff , data) == -1)
-                                                    field->flags =  DX_FIELD_VALUE_NULL;
-                                                     else
-                                                        field->flags       =  DX_FIELD_VALUE_DATE ;
-                                                field->key  =  dx_string_convertU(data) ;
+                                                {
+                                                  field->flags =  DX_FIELD_VALUE_NULL;
+                                                  field->key   = NULL ;
+                                                }
+                                                 else
+                                                   {
+                                                      field->flags       =  DX_FIELD_VALUE_DATE ;
+                                                      field->key  =  dx_string_convertU(data) ;
+                                                   }
+                                                   
                                                 dx_string_free(data); /*free the memory*/
                                         }
                                         break ;
