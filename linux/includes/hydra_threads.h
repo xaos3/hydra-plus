@@ -22,6 +22,8 @@ void * hdr_threads_execute_inter(void *param)
 	 PHDR_CUSTOM_FUNCTION	func		= ((PHDR_ASYNC_PARAM)param)->func   ;
 	 PHDR_THREAD			*thr_pos    = ((PHDR_ASYNC_PARAM)param)->pos    ;
 	 
+	 cthreads_thread_detach(*(thread->cthread));  /*2026-05-05 detach the thread to signal the os to auto clean the resources*/ 
+
 	 /*remember we do not return any value from the async function except the message*/
 	 thread->running = true ;
 	 if (hdr_inter_execute_instructions_thread(interpreter) != exec_state_ok) 
@@ -297,7 +299,7 @@ enum exec_state hdr_async_run_function(PHDR_INTERPRETER inter , PHDR_CUSTOM_FUNC
 	
 	async_inter->thread        = nthread ;
 	async_inter->async_params  = async_params ;
-	int error_code = cthreads_thread_create(cthread, NULL,hdr_threads_execute_inter, param, args) ;
+	int error_code = cthreads_thread_create(cthread, NULL,hdr_threads_execute_inter, param, args) ; /*the thread is detaching in ther eto avoid unsynchronized memory release*/
 	if (error_code!=0)
 	{
 	  printf("Error creating the cthread for the async. Error code : %d\n",error_code) ;
