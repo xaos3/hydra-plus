@@ -1333,7 +1333,7 @@ PHDR_VAR hdr_inter_return_stringlist_item(PHDR_VAR base_var,PHDR_VAR indx)
 
 PHDR_VAR hdr_inter_return_dataset_row(PHDR_VAR base_var,PHDR_VAR indx)
 {
-  
+
   PDX_QUERY query = (PDX_QUERY)base_var->obj ;
   if(indx->type == hvt_undefined)
   {
@@ -1368,15 +1368,14 @@ PHDR_VAR hdr_inter_return_dataset_row(PHDR_VAR base_var,PHDR_VAR indx)
 		   printf("Internal error. The index that was supplied for the [Dataset] '%s' returned as NULL node.\n",base_var->name->stringa);
 		   return NULL ;
 	   }
-	   PDX_ROW   row = dx_db_query_row_from_node(pnode); 
+
+	   PDX_ROW   row = dx_db_query_row_from_node(pnode);  
 	   PDX_DB_ROW_WRAP rwrap = dx_db_row_wrap_create() ;
 	   rwrap->query = query ;
 	   rwrap->row   = row   ;
 	   PHDR_VAR  var = hdr_var_create(rwrap,"",hvf_temporary_ref,NULL) ;  
 	   var->type = hvt_data_row ;
-		  
 	   return var ;
-
     }
 	 else
 		{
@@ -1394,7 +1393,7 @@ PHDR_VAR hdr_inter_return_dataset_row(PHDR_VAR base_var,PHDR_VAR indx)
 
 PHDR_VAR hdr_inter_return_data_row_field(PHDR_VAR base_var,PHDR_VAR indx)
 {
-  
+
   PDX_DB_ROW_WRAP wrow = (PDX_DB_ROW_WRAP)base_var->obj ;
   PDX_ROW		  row  = wrow->row ;
   if(indx->type == hvt_undefined)
@@ -1464,16 +1463,40 @@ PHDR_VAR hdr_inter_return_data_row_field(PHDR_VAR base_var,PHDR_VAR indx)
 		   }break ;
 		   case DX_FIELD_VALUE_BLOB:
 		   {
-		     var->type    = hvt_bytes   ;
-			 PDX_DB_BLOB blob = (PDX_DB_BLOB)field->obj ;
-			 PHDR_BYTES bytes = hdr_bytes_create(blob->count) ;
-			 /* OBSOLETE :: --copy the bytes--   2026-27-03 we will pass the blob as reference. The user MUST not free this , is freed in the row , but if wants to use it 
-			    after the row is invalidated (actually after the dataset is freed) they MUST COPY the bytes to another buffer 
-			 */
-			 /*memcpy(bytes->bytes,blob->data,bytes->length) ;*/
-			 bytes->bytes = blob->data ;
-			 hdr_var_set_obj(var,bytes);
-		   }
+				var->type    = hvt_bytes   ;
+				PDX_DB_BLOB blob = (PDX_DB_BLOB)field->obj ;
+
+				/* OBSOLETE :: --copy the bytes--   2026-27-03 we will pass the blob as reference. The user MUST not free this , is freed in the row , but if wants to use it 
+					after the row is invalidated (actually after the dataset is freed) they MUST COPY the bytes to another buffer 
+				*/
+				/*
+				memcpy(bytes->bytes,blob->data,bytes->length) ;
+				PHDR_BYTES bytes = hdr_bytes_create(blob->count) ;
+				*/
+
+				/*the bytes are semi managed, we will dispose of the PHDR_BYTES when the PDX_DB_ROW_WRAP is freed. To do this we will track the bytes of the row */
+				/*check if the field is already accessed*/
+				PDX_STRING strindx = dx_IntToStr(iindx);
+				PDXL_OBJECT bytes_o = dx_HashReturnItem(wrow->bytes_fields,strindx,true);
+				if(bytes_o != NULL)
+				{
+					dx_string_free(strindx);
+					PHDR_BYTES bytes = bytes_o->obj ;
+					hdr_var_set_obj(var,bytes);
+				}
+				else
+				{	
+					PHDR_BYTES bytes = (PHDR_BYTES)malloc(sizeof(struct hdr_bytes)) ;
+					bytes->length = blob->count ;
+					bytes->bytes  = blob->data  ;
+					hdr_var_set_obj(var,bytes)  ;
+					/*set the bytes into the row list*/
+					PDXL_OBJECT obj = dxl_object_create();
+					obj->key		  = strindx;
+					obj->obj		  = bytes ;
+					dx_HashInsertObject(wrow->bytes_fields,obj) ;
+				}
+		   }break;
 		   case DX_FIELD_VALUE_DATE:
 		   {
 		     var->type     = hvt_simple_string ;
@@ -1535,21 +1558,47 @@ PHDR_VAR hdr_inter_return_data_row_field(PHDR_VAR base_var,PHDR_VAR indx)
 			   }break ;
 			   case DX_FIELD_VALUE_BLOB:
 			   {
-				 var->type    = hvt_bytes   ;
-				 PDX_DB_BLOB blob = (PDX_DB_BLOB)field->obj ;
-				 PHDR_BYTES bytes = hdr_bytes_create(blob->count) ;
-				 /*copy the bytes*/
-				 memcpy(bytes->bytes,blob->data,bytes->length) ;
-				 hdr_var_set_obj(var,bytes);
-				 break ;
-			   }
-			   case DX_FIELD_VALUE_DATE:
-			   {
-				 var->type     = hvt_simple_string ;
-				 PDX_STRING ns = dx_string_createU(NULL,field->key->stringa) ;  
-				 hdr_var_set_obj(var,ns) ;
-				 break;
-			   }
+					var->type    = hvt_bytes   ;
+					PDX_DB_BLOB blob = (PDX_DB_BLOB)field->obj ;
+
+					/* OBSOLETE :: --copy the bytes--   2026-27-03 we will pass the blob as reference. The user MUST not free this , is freed in the row , but if wants to use it 
+						after the row is invalidated (actually after the dataset is freed) they MUST COPY the bytes to another buffer 
+					*/
+					/*
+					memcpy(bytes->bytes,blob->data,bytes->length) ;
+					PHDR_BYTES bytes = hdr_bytes_create(blob->count) ;
+					*/
+
+					/*the bytes are semi managed, we will dispose of the PHDR_BYTES when the PDX_DB_ROW_WRAP is freed. To do this we will track the bytes of the row */
+					/*check if the field is already accessed*/
+
+					PDXL_OBJECT bytes_o = dx_HashReturnItem(wrow->bytes_fields,str,true);
+					if(bytes_o != NULL)
+					{
+						PHDR_BYTES bytes = bytes_o->obj ;
+						hdr_var_set_obj(var,bytes);
+					}
+					else
+					{	
+						PHDR_BYTES bytes = (PHDR_BYTES)malloc(sizeof(struct hdr_bytes)) ;
+						bytes->length = blob->count ;
+						bytes->bytes  = blob->data  ;
+						hdr_var_set_obj(var,bytes)  ;
+						/*set the bytes into the row list*/
+						PDXL_OBJECT obj = dxl_object_create();
+						PDX_STRING nstr = dx_string_createU(NULL,str->stringa) ;
+						obj->key		  = nstr;
+						obj->obj		  = bytes ;
+						dx_HashInsertObject(wrow->bytes_fields,obj) ;
+					}
+				}break;
+				case DX_FIELD_VALUE_DATE:
+				{
+					var->type     = hvt_simple_string ;
+					PDX_STRING ns = dx_string_createU(NULL,field->key->stringa) ;  
+					hdr_var_set_obj(var,ns) ;
+					break;
+				}
 		   }
 
 		   return var ;

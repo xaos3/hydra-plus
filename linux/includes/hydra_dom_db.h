@@ -1037,13 +1037,13 @@ bool hdr_dom_dr_free(PHDR_INTERPRETER inter, PHDR_COMPLEX_TOKEN token,PHDR_VAR f
         PHDR_SYS_FUNC_PARAMS params = hdr_sys_func_init_params(inter,token->parameters,0) ;
         if(params == NULL)
         {
-         printf("The system function DataRow.Free().\n");
+         printf("The system function DataRow.Free() failed. Null Params.\n");
          return true ;
         } 
 
         if(for_var->obj != NULL)
         {
-            free(for_var->obj) ;
+            dx_db_row_wrap_free(for_var->obj) ;
             hdr_var_release_obj(for_var) ;
         }
       
@@ -1064,7 +1064,7 @@ PDX_DB_ROW_WRAP hdr_dom_datarow_free(PDX_DB_ROW_WRAP row)
 {
     if(row != NULL)
     {
-        free(row) ;
+        dx_db_row_wrap_free(row) ;
     }  
     return NULL ;
 }

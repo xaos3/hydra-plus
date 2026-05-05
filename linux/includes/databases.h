@@ -37,6 +37,26 @@
 #define DX_FIELD_VALUE_BLOB  4
 #define DX_FIELD_VALUE_DATE  5
 
+
+/* ****************************************** */
+
+typedef struct hdr_bytes_db /*same with the hdr_bytes in the hydra_struct*/
+{
+	char      *bytes ;
+	DXLONG64  length ;
+
+} *PHDR_BYTES_DB;
+
+PHDR_BYTES_DB hdr_bytes_db_free(PHDR_BYTES_DB bytes)
+{
+  if(bytes == NULL) return NULL ;
+  free(bytes)		 ;
+  return NULL		 ;
+}
+
+/* ***************************************** */
+
+
 typedef struct dx_sqlite
 /*#
 {
@@ -125,14 +145,31 @@ typedef struct dx_db_row_wrap
 {
     PDX_QUERY query ;
     PDX_ROW   row   ;
+    /*The BYTES type will be managed in the row , so the PHDR_BYTES object NOT the data in it, will be auto freed after the row is freed too*/
+    PDX_HASH_TABLE bytes_fields ;
+
 } *PDX_DB_ROW_WRAP;
 
 PDX_DB_ROW_WRAP dx_db_row_wrap_create()
 {
- return (PDX_DB_ROW_WRAP) malloc(sizeof(struct dx_db_row_wrap));
+   PDX_DB_ROW_WRAP row_wrap = malloc(sizeof(struct dx_db_row_wrap));
+   row_wrap->bytes_fields   =  dx_HashCreateTable(1);
+   return row_wrap ;
 }
+
+
+void dx_db_row_wrap_free_bytes(PDXL_OBJECT obj)
+{
+	PHDR_BYTES_DB bt = obj->obj			;
+  bt->bytes = NULL ; /*for safety we do not want the actual data to be deleted , they belong to the dataset not to the row wrapper*/
+	obj->obj = hdr_bytes_db_free(bt);
+	return;
+}
+
 PDX_DB_ROW_WRAP dx_db_row_wrap_free(PDX_DB_ROW_WRAP row_wrap)
 {
+    /*deallocate the bytes_fields*/
+    dx_HashDestroyTable(row_wrap->bytes_fields, dx_db_row_wrap_free_bytes);
     free(row_wrap) ;
     return NULL ;
 }

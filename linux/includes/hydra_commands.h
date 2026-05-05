@@ -62,7 +62,7 @@ enum exec_state hdr_cmd_time_point(PHDR_INTERPRETER inter)
 enum exec_state hdr_cmd_version(PHDR_INTERPRETER inter)
 {
 	/*print the version and info of hydra*/
-	printf("Hydra+ by Nikos Mourgis. Deus-Ex.gr. Version 1.0.5.rbr Beta\n");
+	printf("Hydra+ by Nikos Mourgis. Deus-Ex.gr. Version 1.0.7.frowl Beta\n");
 	return exec_state_ok;
 }
 
