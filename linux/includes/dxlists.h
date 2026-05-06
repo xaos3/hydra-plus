@@ -421,7 +421,7 @@ PDX_STRINGLIST dx_stringlist_load_text_ex(PDX_STRINGLIST list , PDX_STRING str ,
 /*#
  The function adds the str to the list BUT it does not add it as one singular string. 
  The function counts bytes and when the characters reach the break_every then a dx_string is
- saved as a new one is created for the remaining characters.
+ saved as a new one.
  This is usefull in operations like character or words replace , so we avoid to alloc and free large memory buffers. 
 #*/
 
@@ -740,10 +740,6 @@ PDXL_NODE dx_list_delete_node( PDXL_NODE node )
 	    list->curr_indx = 0  ;
 	    list->curr_node = list->start ;
 
-		//reset internal state 
-		list->curr_indx = 0  ;
-		list->curr_node = list->start ;
-
         return NULL ;
     }
 
@@ -974,10 +970,10 @@ PDX_LIST dx_list_clone_list( PDX_LIST list , DXLONG64 frompos )
     if ( newlist == NULL ) return NULL ;
 
     PDXL_NODE node = dx_list_go_to_pos(list,frompos) ;
-    while( node->right != NULL )
+    while( node != NULL )
     {
       dx_list_add_node_direct( newlist , node->object );
-      node = node->left ;
+      node = node->right ;
     }
 
    return newlist ;
@@ -1103,6 +1099,7 @@ void dx_list_sort_keys(PDX_LIST list, bool asc)
       node = node->right ;
 	}
 
+	free(sortbuffer);
 	return ;
 }
 
@@ -1155,6 +1152,7 @@ void dx_list_sort_int_keys(PDX_LIST list, bool asc)
       node = node->right ;
 	}
 
+	free(sortbuffer);
 	return ;
 }
 
@@ -1206,6 +1204,7 @@ void dx_list_sort_float_keys(PDX_LIST list, bool asc)
       node = node->right ;
 	}
 
+	free(sortbuffer);
 	return ;
 }
 
@@ -1988,8 +1987,8 @@ bool dx_HashBucketEmpty(PDX_HASH_TABLE table , PDX_STRING str)
 
 enum dx_compare_res dx_compare_utf8_binary(PDX_STRING str1 , PDX_STRING str2)
 {
-  if(str1->len != str2->len) return dx_not_equal ;
   if((str1 == NULL)||(str2 == NULL)) return dx_not_equal ;
+  if(str1->len != str2->len) return dx_not_equal ;
 
   char *str1indx = str1->stringa ;
   char *str2indx = str2->stringa ;
@@ -2133,9 +2132,7 @@ PDXL_OBJECT dx_HashItemByIndex(PDX_HASH_TABLE table ,DXLONG64 indx)
 
 PDX_STRINGLIST dx_stringlist_create()
 {
-
     return dx_list_create_list();
-
 }
 
 void *dx_stringlist_free(PDX_STRINGLIST list)
@@ -2433,31 +2430,32 @@ PDX_STRINGLIST dx_stringlist_load_text_ex(PDX_STRINGLIST list , PDX_STRING str ,
 			   buff_indx++;
 			   curr_char++;
 		   }
+
 		   bytes_cnt = bytes_cnt+csize ;
+
+		   if(bytes_cnt == break_every)   /*2026-05-06 Correction : this was outside of the if and never executed*/
+		   {
+				*buff_indx=0 ;/*terminate and insert*/
+				dx_stringlist_add_raw_string(list,buff);
+				buff_indx = buff ; /*reset buffer*/
+				*buff_indx = 0   ;
+				bytes_cnt  = 0   ;
+		   }
 
 		   continue ;/*the character was inserted , proceed to the next one*/
 	   }
 	   else
-	   {
-		/*the character does not fit the buffer , save the accumulated buffer*/
-	    *buff_indx = 0 ;
-		dx_stringlist_add_raw_string(list,buff);
-		bytes_cnt = 0 ;
-		buff_indx = buff ;
-		*buff_indx = 0   ;
-		/*reset the last character as we did not handle it*/
-		string = curr_char ;
-		continue ;
-	   }
-
-	   if(bytes_cnt == break_every)
-	   {
-		 *buff_indx=0 ;/*terminate and insert*/
-		 dx_stringlist_add_raw_string(list,buff);
-		 buff_indx = buff ; /*reset buffer*/
-		 *buff_indx = 0   ;
-		 bytes_cnt  = 0   ;
-	   }
+		{
+			/*the character does not fit the buffer , save the accumulated buffer*/
+			*buff_indx = 0 ;
+			dx_stringlist_add_raw_string(list,buff);
+			bytes_cnt = 0 ;
+			buff_indx = buff ;
+			*buff_indx = 0   ;
+			/*reset the last character as we did not handle it*/
+			string = curr_char ;
+			continue ;
+		}
 
 	 }
 	 /*add the remainder*/
@@ -2706,7 +2704,7 @@ DXLONG64 dx_stringlist_find_word_binary(PDX_STRINGLIST list,char *word,DXLONG64 
 	if(from_indx < 0 ) return -1 ;
 	char* word_indx = word ;
 
-	/*find the relative index form the absolute index*/
+	/*find the relative index from the absolute index*/
 	DXLONG64  relative_indx = -1 ;
 	DXLONG64  abs_indx		= from_indx / 512 ;
 	PDXL_NODE node = list->start ;
@@ -3174,7 +3172,6 @@ DXLONG64 dx_replace_word_binary(PDX_STRING source,DXLONG64 from_index,PDX_STRING
 
 
 
-
 DXLONG64 dx_unicode_search_h_word(DXCHAR **str_indx,DXCHAR *word,DXCHAR **word_start )
 {
 	/*
@@ -3262,7 +3259,11 @@ DXLONG64 dx_replace_word_unicode(PDX_STRING source,DXLONG64 from_index,PDX_STRIN
 	}
 
 	last_word_start = last_word_start - word->len ;/*set the index as the first character of the last word to replace*/
-	if(replace_words->count == 0) return -1 ; /*no word was found*/
+	if(replace_words->count == 0)
+	{
+		dx_list_delete_list(replace_words);
+		return -1 ; /*no word was found*/
+	}
 	
 	/*create a special list with the info about the strings to be copied*/
 	PDX_LIST strlist = dx_list_create_list() ;
