@@ -22,7 +22,9 @@ void * hdr_threads_execute_inter(void *param)
 	 PHDR_CUSTOM_FUNCTION	func		= ((PHDR_ASYNC_PARAM)param)->func   ;
 	 PHDR_THREAD			*thr_pos    = ((PHDR_ASYNC_PARAM)param)->pos    ;
 	 
-	 cthreads_thread_detach(*(thread->cthread));  /*2026-05-05 detach the thread to signal the os to auto clean the resources*/ 
+	 #ifdef _LINUX
+	  cthreads_thread_detach(*(thread->cthread));  /*2026-05-05 detach the thread to signal the OS to auto clean the resources*/ 
+	 #endif
 
 	 /*remember we do not return any value from the async function except the message*/
 	 thread->running = true ;
